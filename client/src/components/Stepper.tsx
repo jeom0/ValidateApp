@@ -8,7 +8,7 @@ interface StepperProps {
   max?: number;
 }
 
-export const Stepper: React.FC<StepperProps> = ({ value, onChange, min = 1, max = 100 }) => {
+const Stepper: React.FC<StepperProps> = ({ value, onChange, min = 1, max = 100 }) => {
   return (
     <div style={{ 
       display: 'inline-flex', 
@@ -53,3 +53,5 @@ export const Stepper: React.FC<StepperProps> = ({ value, onChange, min = 1, max 
     </div>
   );
 };
+
+export default Stepper;

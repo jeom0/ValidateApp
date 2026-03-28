@@ -152,23 +152,19 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, tem
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
                 crossOrigin="anonymous" 
               />
-              <div 
-                style={{ 
-                  position: 'absolute', 
-                  left: `${template.qrX}%`, 
-                  top: `${template.qrY}%`, 
-                  width: `${template.qrWidth}%`, 
-                  height: `${template.qrHeight}%`,
-                  background: '#fff',
-                  padding: '1.5%', // Proportional padding
-                  borderRadius: '0.75rem',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+              <div
+                style={{
+                  position: 'absolute',
+                  left: template.qrX,
+                  top: template.qrY,
+                  width: template.qrWidth,
+                  height: template.qrHeight,
+                  zIndex: 2,
+                  background: 'white',
+                  padding: '2px',
                 }}
               >
-                <QRCodeSVG value={ticket.code} style={{ width: '100%', height: '100%' }} bgColor="#ffffff" fgColor="#000000" />
+                <QRCodeSVG value={ticket.code || 'VALIDATE-TEST'} size={template.qrWidth - 4} level="M" />
               </div>
             </>
           ) : (

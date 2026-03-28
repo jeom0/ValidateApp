@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
-import { Stepper } from '../components/Stepper';
+import Stepper from '../components/Stepper';
 
 interface Event {
   id: string;
@@ -291,19 +291,23 @@ const Events: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-primary" style={{ flex: 1, fontSize: '0.8125rem' }} onClick={() => openEventBoletas(event)}><Ticket size={14} /> Boletas</button>
+                  <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem' }}>
+                    <button className="btn btn-primary" style={{ flex: 1, minWidth: 0, fontSize: '0.75rem', padding: '0.5rem 0.25rem' }} onClick={() => openEventBoletas(event)}>
+                      <Ticket size={12} /> Boletas
+                    </button>
                     <button 
                       className="btn" 
-                      style={{ fontSize: '0.8125rem', background: hasLinkedDesign ? '#fef3c7' : '#f3f4f6', color: hasLinkedDesign ? '#d97706' : '#6b7280' }} 
+                      style={{ flex: 1, minWidth: 0, fontSize: '0.75rem', padding: '0.5rem 0.25rem', background: hasLinkedDesign ? '#fef3c7' : '#f3f4f6', color: hasLinkedDesign ? '#d97706' : '#6b7280' }} 
                       onClick={() => openDesign(event)}
                     >
-                      <Palette size={14} /> Diseño
+                      <Palette size={12} /> Diseño
                     </button>
-                    <button className="btn btn-ghost" style={{ padding: '0.5rem' }} onClick={() => openEdit(event)}><Edit2 size={16} /></button>
+                    <button className="btn btn-ghost" style={{ padding: '0.5rem', flexShrink: 0, borderRadius: '0.75rem' }} onClick={() => openEdit(event)}>
+                      <Edit2 size={16} />
+                    </button>
                     <button 
                       className="btn" 
-                      style={{ padding: '0.5rem', background: '#fef2f2', color: '#dc2626' }} 
+                      style={{ padding: '0.5rem', flexShrink: 0, borderRadius: '0.75rem', background: '#fef2f2', color: '#dc2626' }} 
                       onClick={() => openDeleteDialog('Eliminar Evento', `¿Estás seguro de que deseas eliminar "${event.name}"?`, () => handleDelete(event.id))}
                     >
                       <Trash2 size={16} />

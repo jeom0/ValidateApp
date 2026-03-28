@@ -3,7 +3,7 @@ import { API_URL } from '../config';
 import { Modal } from '../components/Modal';
 import { Search, Edit2, Trash2, Ticket, ChevronRight, UserPlus, Plus, Minus, Calendar, CheckCircle2 } from 'lucide-react';
 import TicketPreview from '../components/TicketPreview';
-import { Stepper } from '../components/Stepper';
+import Stepper from '../components/Stepper';
 
 const Clients: React.FC = () => {
   const [clients, setClients] = useState<any[]>([]);
