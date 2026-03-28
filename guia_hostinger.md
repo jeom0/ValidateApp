@@ -1,18 +1,13 @@
-# Guía de Solución: Error 405 en Hostinger
+# Guía de Solución: Error al conectar con el servidor en Hostinger
 
-El error **405 (Method Not Allowed)** ocurre porque el servidor web de Hostinger (Apache) está interceptando la petición de inicio de sesión antes de que llegue a Node.js. Para solucionarlo, necesitamos indicarle a Hostinger que pase todas las peticiones a tu aplicación.
+El error **"Error al conectar con el servidor. Verifica que el backend esté corriendo."** ocurre porque el servidor web de Hostinger (Apache/LiteSpeed) está interceptando la petición `/api/login` y devolviendo el archivo `index.html` en lugar de enviar la petición a tu aplicación Node.js.
 
-## 1. Crear archivo `.htaccess`
-Crea un archivo llamado `.htaccess` en la carpeta raíz de tu proyecto en Hostinger (donde está el `package.json` del servidor) con el siguiente contenido:
+## 1. Eliminar reglas en `.htaccess` (Solución)
+Si anteriormente creaste un archivo `.htaccess` con reglas de redirección `RewriteRule` o "RewriteEngine On", **debes eliminarlas**. 
 
-```apache
-RewriteEngine On
-RewriteBase /
-RewriteRule ^index\.html$ - [L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . / [L]
-```
+Tu servidor Node.js (`server/server.js`) ya está programado para servir el frontend (`app.use(express.static(...))`) y no necesitas reglas externas de Apache.
+
+Entra al administrador de Archivos de Hostinger, busca el archivo `.htaccess` en tu carpeta raíz y déjalo con su configuración original por defecto, o simplemente borra las líneas de `RewriteRule`.
 
 ## 2. Verificar Configuración en Hostinger
 En el tablero de Hostinger -> **Node.js**:
