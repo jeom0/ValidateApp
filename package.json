@@ -2,9 +2,6 @@
   "name": "querty-app",
   "version": "1.0.0",
   "description": "Hostinger Monorepo Root",
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "scripts": {
     "build": "echo Build bypassed successfully.",
     "start": "node server/server.js"
