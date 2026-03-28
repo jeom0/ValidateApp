@@ -9,7 +9,6 @@ import Events from './pages/Events';
 import Clients from './pages/Clients';
 import TemplateEditor from './pages/TemplateEditor';
 import Scanner from './pages/Scanner';
-import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -24,7 +23,7 @@ function App() {
             <Route path="eventos" element={<Events />} />
             <Route path="clientes" element={<Clients />} />
             <Route path="plantilla" element={<TemplateEditor />} />
-            <Route path="configuracion" element={<Settings />} />
+            <Route path="plantilla" element={<TemplateEditor />} />
           </Route>
         </Route>
 

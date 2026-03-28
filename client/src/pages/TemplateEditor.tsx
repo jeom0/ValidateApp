@@ -18,7 +18,7 @@ interface Template {
 }
 
 const defaultTemplate: Template = {
-  id: '', name: '', imageUrl: '', qrX: 50, qrY: 50, qrWidth: 120, qrHeight: 120
+  id: '', name: '', imageUrl: '', qrX: 10, qrY: 10, qrWidth: 20, qrHeight: 20
 };
 
 const TemplateEditor: React.FC = () => {
@@ -295,16 +295,41 @@ const TemplateEditor: React.FC = () => {
                 <img
                   src={activeTemplate.imageUrl}
                   alt="Fondo Boleta"
+                  className="canvas-img"
                   style={{ maxWidth: '100%', maxHeight: '550px', display: 'block', borderRadius: '1rem' }}
                   draggable={false}
                 />
                 <Rnd
-                  size={{ width: activeTemplate.qrWidth, height: activeTemplate.qrHeight }}
-                  position={{ x: activeTemplate.qrX, y: activeTemplate.qrY }}
-                  onDragStop={(_e, d) => setActiveTemplate(prev => ({ ...prev, qrX: d.x, qrY: d.y }))}
-                  onResizeStop={(_e, _dir, ref, _delta, position) =>
-                    setActiveTemplate(prev => ({ ...prev, qrWidth: parseInt(ref.style.width), qrHeight: parseInt(ref.style.height), ...position }))
-                  }
+                  size={{ 
+                    width: `${activeTemplate.qrWidth}%`, 
+                    height: `${activeTemplate.qrHeight}%` 
+                  }}
+                  position={{ 
+                    x: (activeTemplate.qrX / 100) * (document.querySelector('.canvas-img')?.clientWidth || 1), 
+                    y: (activeTemplate.qrY / 100) * (document.querySelector('.canvas-img')?.clientHeight || 1) 
+                  }}
+                  onDragStop={(_e, d) => {
+                    const img = document.querySelector('.canvas-img') as HTMLImageElement;
+                    if (img) {
+                      setActiveTemplate(prev => ({ 
+                        ...prev, 
+                        qrX: (d.x / img.clientWidth) * 100, 
+                        qrY: (d.y / img.clientHeight) * 100 
+                      }));
+                    }
+                  }}
+                  onResizeStop={(_e, _dir, ref, _delta, position) => {
+                    const img = document.querySelector('.canvas-img') as HTMLImageElement;
+                    if (img) {
+                      setActiveTemplate(prev => ({ 
+                        ...prev, 
+                        qrWidth: (parseInt(ref.style.width) / img.clientWidth) * 100, 
+                        qrHeight: (parseInt(ref.style.height) / img.clientHeight) * 100,
+                        qrX: (position.x / img.clientWidth) * 100,
+                        qrY: (position.y / img.clientHeight) * 100
+                      }));
+                    }
+                  }}
                   bounds="parent"
                   style={{
                     border: '2.5px solid #16a34a',

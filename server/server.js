@@ -94,27 +94,27 @@ app.get('/api/events', (req, res) => {
 
 app.post('/api/events', (req, res) => {
   const id = crypto.randomUUID();
-  const { name, date, startTime, endTime, imageUrl } = req.body;
+  const { name, date, startTime, endTime, imageUrl, location } = req.body;
   db.run(
-    'INSERT INTO events (id, name, date, startTime, endTime, imageUrl, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [id, name, date, startTime, endTime, imageUrl, 'pendiente'],
+    'INSERT INTO events (id, name, date, startTime, endTime, imageUrl, status, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, name, date, startTime, endTime, imageUrl, 'pendiente', location],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
       logActivity({ type: 'event_created', message: `Evento creado: ${name}`, eventName: name });
-      res.json({ id, name, date, startTime, endTime, imageUrl, status: 'pendiente' });
+      res.json({ id, name, date, startTime, endTime, imageUrl, status: 'pendiente', location });
     }
   );
 });
 
 app.put('/api/events/:id', (req, res) => {
-  const { name, date, startTime, endTime, imageUrl, status } = req.body;
+  const { name, date, startTime, endTime, imageUrl, status, location } = req.body;
   db.run(
-    'UPDATE events SET name = ?, date = ?, startTime = ?, endTime = ?, imageUrl = ?, status = ? WHERE id = ?',
-    [name, date, startTime, endTime, imageUrl, status, req.params.id],
+    'UPDATE events SET name = ?, date = ?, startTime = ?, endTime = ?, imageUrl = ?, status = ?, location = ? WHERE id = ?',
+    [name, date, startTime, endTime, imageUrl, status, location, req.params.id],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       logActivity({ type: 'event_updated', message: `Evento editado: ${name}`, eventName: name });
-      res.json({ id: req.params.id, name, date, startTime, endTime, imageUrl, status });
+      res.json({ id: req.params.id, name, date, startTime, endTime, imageUrl, status, location });
     }
   );
 });

@@ -45,9 +45,6 @@ export const Layout: React.FC = () => {
           <NavLink to="/admin/plantilla" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`} onClick={close}>
             <ImageIcon size={20} /> Boletas
           </NavLink>
-          <NavLink to="/admin/configuracion" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`} onClick={close}>
-            <Settings size={20} /> Configuración
-          </NavLink>
           <div style={{ borderTop: '1px solid #e5e7eb', margin: '0.75rem 0' }} />
           <NavLink to="/scan" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`} onClick={close}>
             <ScanLine size={20} /> Escáner

@@ -1,6 +1,6 @@
 import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Download, Smartphone, CheckCircle2, XCircle } from 'lucide-react';
+import { Download, Send, CheckCircle2, XCircle } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -119,7 +119,7 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, tem
             onMouseLeave={e => e.currentTarget.style.background = '#f3f4f6'}
             title="Enviar por WhatsApp"
           >
-            <Smartphone size={18} />
+            <Send size={18} />
           </button>
         </div>
       </div>
@@ -155,14 +155,17 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, tem
               <div 
                 style={{ 
                   position: 'absolute', 
-                  left: template.qrX, 
-                  top: template.qrY, 
-                  width: template.qrWidth, 
-                  height: template.qrHeight,
+                  left: `${template.qrX}%`, 
+                  top: `${template.qrY}%`, 
+                  width: `${template.qrWidth}%`, 
+                  height: `${template.qrHeight}%`,
                   background: '#fff',
-                  padding: '0.5rem',
+                  padding: '1.5%', // Proportional padding
                   borderRadius: '0.75rem',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
                 <QRCodeSVG value={ticket.code} style={{ width: '100%', height: '100%' }} bgColor="#ffffff" fgColor="#000000" />

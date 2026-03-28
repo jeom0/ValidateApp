@@ -31,8 +31,8 @@ db.serialize(() => {
     qrY REAL,
     qrWidth REAL,
     qrHeight REAL,
-    eventId TEXT UNIQUE
-  )`);
+    eventId TEXT
+  )`, (err) => { if (err) console.error("Error creating templates:", err.message); });
   
   db.run(`CREATE TABLE IF NOT EXISTS events (
     id TEXT PRIMARY KEY,
@@ -41,8 +41,9 @@ db.serialize(() => {
     startTime TEXT,
     endTime TEXT,
     status TEXT DEFAULT 'pendiente',
-    imageUrl TEXT
-  )`);
+    imageUrl TEXT,
+    location TEXT
+  )`, (err) => { if (err) console.error("Error creating events:", err.message); });
 
   db.run(`CREATE TABLE IF NOT EXISTS boletas (
     id TEXT PRIMARY KEY,
@@ -61,6 +62,7 @@ db.serialize(() => {
   db.run(`ALTER TABLE boletas ADD COLUMN eventId TEXT`, (err) => {});
   db.run(`ALTER TABLE clients ADD COLUMN cedula TEXT`, (err) => {});
   db.run(`ALTER TABLE templates ADD COLUMN eventId TEXT`, (err) => {});
+  db.run(`ALTER TABLE events ADD COLUMN location TEXT`, (err) => {});
 
   db.run(`CREATE TABLE IF NOT EXISTS scan_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
