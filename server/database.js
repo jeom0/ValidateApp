@@ -2,9 +2,14 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const dbPath = path.resolve(__dirname, 'data.db');
-const db = new sqlite3.Database(dbPath);
+console.log('Database path:', dbPath);
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) console.error('Database connection error:', err.message);
+  else console.log('Connected to SQLite database');
+});
 
 db.serialize(() => {
+  console.log('Initializing database tables...');
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE,
@@ -62,7 +67,21 @@ db.serialize(() => {
     ticketId TEXT,
     resultado TEXT,
     fecha_hora TEXT
-  )`);
+  )`, (err) => { if (err) console.error("Error creating scan_logs:", err.message); });
+
+  db.run(`CREATE TABLE IF NOT EXISTS activity_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT,
+    message TEXT,
+    timestamp TEXT,
+    details TEXT,
+    consecutivo INTEGER,
+    clientName TEXT,
+    eventName TEXT
+  )`, (err) => { 
+    if (err) console.error("Error creating activity_logs:", err.message); 
+    else console.log("Table activity_logs ready");
+  });
 });
 
 // Seed data if empty

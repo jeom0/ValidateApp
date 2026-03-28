@@ -8,6 +8,27 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Log every request
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
+// Helper for unified activity logs
+const logActivity = (data) => {
+  const { type, message, details = null, consecutivo = null, clientName = null, eventName = null } = data;
+  const timestamp = new Date().toISOString();
+  console.log('Logging activity:', type, message);
+  db.run(
+    'INSERT INTO activity_logs (type, message, timestamp, details, consecutivo, clientName, eventName) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [type, message, timestamp, details, consecutivo, clientName, eventName],
+    (err) => {
+      if (err) console.error('Error logging activity:', err.message);
+      else console.log('Activity logged successfully');
+    }
+  );
+};
+
 // Login simple
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
@@ -23,19 +44,9 @@ app.post('/api/login', (req, res) => {
 // Recent activity for dashboard
 app.get('/api/activity', (req, res) => {
   const query = `
-    SELECT 
-      l.id, 
-      l.resultado, 
-      l.fecha_hora, 
-      b.consecutivo, 
-      c.name as clientName, 
-      e.name as eventName
-    FROM scan_logs l
-    LEFT JOIN boletas b ON l.ticketId = b.id OR l.ticketId = b.code
-    LEFT JOIN clients c ON b.clientId = c.id
-    LEFT JOIN events e ON b.eventId = e.id
-    ORDER BY l.fecha_hora DESC
-    LIMIT 10
+    SELECT * FROM activity_logs 
+    ORDER BY timestamp DESC 
+    LIMIT 15
   `;
   db.all(query, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -89,6 +100,7 @@ app.post('/api/events', (req, res) => {
     [id, name, date, startTime, endTime, imageUrl, 'pendiente'],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity({ type: 'event_created', message: `Evento creado: ${name}`, eventName: name });
       res.json({ id, name, date, startTime, endTime, imageUrl, status: 'pendiente' });
     }
   );
@@ -147,6 +159,13 @@ app.post('/api/clients', (req, res) => {
         tickets.push({ id: ticketId, code, consecutivo: cons, clientId: id, eventId });
       }
       stmt.finalize();
+      
+      logActivity({ 
+        type: 'client_created', 
+        message: `Registro: ${name} (${ticketCount} boletas)`, 
+        clientName: name,
+        details: JSON.stringify({ ticketCount, eventId })
+      });
       
       res.json({ id, name, email, generatedTickets: tickets });
     });
@@ -272,12 +291,21 @@ app.delete('/api/boletas/:id', (req, res) => {
 // Validar y consumir boleta (Scanner)
 app.post('/api/scan', (req, res) => {
   const { code } = req.body;
-  db.get('SELECT * FROM boletas WHERE code = ?', [code], (err, row) => {
+  db.get('SELECT b.*, c.name as clientName, e.name as eventName FROM boletas b LEFT JOIN clients c ON b.clientId = c.id LEFT JOIN events e ON b.eventId = e.id WHERE b.code = ?', [code], (err, row) => {
     if (!row) {
+      logActivity({ type: 'scan_failed', message: `❌ Código Inválido: ${code}`, details: code });
       db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [code, 'no_valida', new Date().toISOString()]);
       return res.status(404).json({ valid: false, message: 'Boleta no encontrada / Inválida' });
     }
     if (row.used) {
+      logActivity({ 
+        type: 'scan_failed', 
+        message: `⚠️ Intento Fallido: Boleta #${row.consecutivo} ya usada`, 
+        consecutivo: row.consecutivo, 
+        clientName: row.clientName, 
+        eventName: row.eventName, 
+        details: row.id 
+      });
       db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [row.id, 'ya_usada', new Date().toISOString()]);
       return res.json({ valid: false, used: true, message: 'Boleta ya utilizada' });
     }
@@ -286,21 +314,36 @@ app.post('/api/scan', (req, res) => {
     db.run('UPDATE boletas SET used = 1, fecha_uso = ? WHERE id = ? AND used = 0', [new Date().toISOString(), row.id], function(err) {
       if(err) return res.status(500).json({error: err.message});
       if (this.changes === 0) {
+        logActivity({ 
+          type: 'scan_failed', 
+          message: `⚠️ Intento Fallido: Boleta #${row.consecutivo} ya usada`, 
+          consecutivo: row.consecutivo, 
+          clientName: row.clientName, 
+          eventName: row.eventName, 
+          details: row.id 
+        });
         db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [row.id, 'ya_usada', new Date().toISOString()]);
         return res.json({ valid: false, used: true, message: 'Boleta ya utilizada' });
       }
+      
+      logActivity({ 
+        type: 'scan_success', 
+        message: `Acceso Concedido: ${row.clientName}`, 
+        consecutivo: row.consecutivo, 
+        clientName: row.clientName, 
+        eventName: row.eventName, 
+        details: row.id 
+      });
       db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [row.id, 'valida', new Date().toISOString()]);
       
-      db.get('SELECT * FROM clients WHERE id = ?', [row.clientId], (err, clientRow) => {
-         res.json({ 
-           valid: true, 
-           message: 'Boleta válida',
-           ticket: {
-             consecutivo: row.consecutivo,
-             fecha_uso: new Date().toISOString(),
-             client: clientRow || {}
-           }
-         });
+      res.json({ 
+        valid: true, 
+        message: 'Boleta válida',
+        ticket: {
+          consecutivo: row.consecutivo,
+          fecha_uso: new Date().toISOString(),
+          client: { name: row.clientName }
+        }
       });
     });
   });
