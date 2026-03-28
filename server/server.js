@@ -113,15 +113,20 @@ app.put('/api/events/:id', (req, res) => {
     [name, date, startTime, endTime, imageUrl, status, req.params.id],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity({ type: 'event_updated', message: `Evento editado: ${name}`, eventName: name });
       res.json({ id: req.params.id, name, date, startTime, endTime, imageUrl, status });
     }
   );
 });
 
 app.delete('/api/events/:id', (req, res) => {
-  db.run('DELETE FROM events WHERE id = ?', [req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Evento eliminado' });
+  db.get('SELECT name FROM events WHERE id = ?', [req.params.id], (err, row) => {
+    const eventName = row ? row.name : 'Desconocido';
+    db.run('DELETE FROM events WHERE id = ?', [req.params.id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      logActivity({ type: 'event_deleted', message: `🗑️ Evento eliminado: ${eventName}`, eventName: eventName });
+      res.json({ message: 'Evento eliminado' });
+    });
   });
 });
 
@@ -179,6 +184,8 @@ app.put('/api/clients/:id', (req, res) => {
   db.run('UPDATE clients SET name = ?, email = ?, cedula = ? WHERE id = ?', [name, email, cedula, id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     
+    logActivity({ type: 'client_updated', message: `Cliente editado: ${name}`, clientName: name });
+
     if (addTickets && addTickets > 0) {
       db.get('SELECT MAX(consecutivo) as max_cons FROM boletas', [], (err, row) => {
         let startConsecutive = (row && row.max_cons) ? row.max_cons + 1 : 1;
@@ -187,6 +194,7 @@ app.put('/api/clients/:id', (req, res) => {
           stmt.run([crypto.randomUUID(), crypto.randomBytes(8).toString('hex'), startConsecutive + i, id, eventId || null]);
         }
         stmt.finalize();
+        logActivity({ type: 'client_updated', message: `Se agregaron ${addTickets} boletas a ${name}`, clientName: name });
         res.json({ id, name, email, message: `Se agregaron ${addTickets} boletas` });
       });
     } else {
@@ -197,13 +205,15 @@ app.put('/api/clients/:id', (req, res) => {
 
 app.delete('/api/clients/:id', (req, res) => {
   const { id } = req.params;
-  // Delete boletas first to maintain integrity (though not enforced by foreign keys in this simple setup)
-  db.run('DELETE FROM boletas WHERE clientId = ?', [id], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    db.run('DELETE FROM clients WHERE id = ?', [id], function(err) {
+  db.get('SELECT name FROM clients WHERE id = ?', [id], (err, row) => {
+    const clientName = row ? row.name : 'Desconocido';
+    db.run('DELETE FROM boletas WHERE clientId = ?', [id], (err) => {
       if (err) return res.status(500).json({ error: err.message });
-      if (this.changes === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
-      res.json({ message: 'Cliente y sus boletas eliminados correctamente' });
+      db.run('DELETE FROM clients WHERE id = ?', [id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        logActivity({ type: 'client_deleted', message: `🗑️ Cliente eliminado: ${clientName}`, clientName: clientName });
+        res.json({ message: 'Cliente y sus boletas eliminados correctamente' });
+      });
     });
   });
 });
