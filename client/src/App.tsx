@@ -26,8 +26,10 @@ function App() {
             <Route path="plantilla" element={<TemplateEditor />} />
             <Route path="configuracion" element={<Settings />} />
           </Route>
-          <Route path="/scan" element={<Scanner />} />
         </Route>
+
+        {/* Public Routes */}
+        <Route path="/scan" element={<Scanner />} />
 
         {/* Redirect root based on auth */}
         <Route path="/" element={<Navigate to="/admin" replace />} />

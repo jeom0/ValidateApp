@@ -1,14 +1,33 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Download, Smartphone, CheckCircle2, XCircle } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-interface Props { client: any; ticket: any; template: any; }
+interface Props { 
+  client: any; 
+  ticket: any; 
+  template: any;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelectToggle?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}
 
-const TicketPreview: React.FC<Props> = ({ client, ticket, template }) => {
+export interface TicketPreviewRef {
+  downloadPDF: () => Promise<void>;
+  downloading: boolean;
+}
+
+const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, template, selectable, selected, onSelectToggle, onEdit, onDelete }, ref) => {
   const printRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    downloadPDF,
+    downloading
+  }));
 
   const downloadPDF = async () => {
     if (!printRef.current) return;
@@ -39,11 +58,31 @@ const TicketPreview: React.FC<Props> = ({ client, ticket, template }) => {
   const isUsed = ticket.used === 1;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '1.5rem', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)' }}>
+    <div 
+      style={{ 
+        display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '1.5rem', overflow: 'hidden', 
+        border: `2px solid ${selected ? '#2563eb' : '#e5e7eb'}`, 
+        boxShadow: selected ? '0 0 0 4px rgba(37,99,235,0.1)' : '0 20px 25px -5px rgba(0, 0, 0, 0.05)',
+        transition: 'all 0.2s ease', cursor: selectable ? 'pointer' : 'default'
+      }}
+      onClick={(e) => {
+        // Only toggle selection if clicking the main card, not the buttons
+        if (selectable && onSelectToggle) onSelectToggle();
+      }}
+    >
       
       {/* Top Control Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', background: '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', background: selected ? '#eff6ff' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {selectable && (
+            <div style={{ 
+              width: 20, height: 20, borderRadius: '0.375rem', border: `2px solid ${selected ? '#2563eb' : '#d1d5db'}`, 
+              background: selected ? '#2563eb' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' 
+            }}>
+              {selected && <CheckCircle2 size={14} style={{ color: '#fff' }} />}
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <span style={{ fontWeight: 900, fontSize: '1.125rem', color: '#111827', letterSpacing: '-0.02em' }}>
             Ticket #{ticket.consecutivo}
           </span>
@@ -57,12 +96,13 @@ const TicketPreview: React.FC<Props> = ({ client, ticket, template }) => {
               {isUsed ? 'Ya Canjeado' : 'Activo para Usar'}
             </span>
           </div>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button 
             type="button"
-            onClick={downloadPDF} 
+            onClick={(e) => { e.stopPropagation(); downloadPDF(); }} 
             disabled={downloading}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#000', color: '#fff', border: 'none', padding: '0.625rem 1.25rem', borderRadius: '999px', fontSize: '0.8125rem', fontWeight: 700, cursor: downloading ? 'wait' : 'pointer', opacity: downloading ? 0.7 : 1, transition: 'transform 0.2s', outline: 'none' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
@@ -73,7 +113,7 @@ const TicketPreview: React.FC<Props> = ({ client, ticket, template }) => {
 
           <button 
             type="button"
-            onClick={shareWhatsApp}
+            onClick={(e) => { e.stopPropagation(); shareWhatsApp(); }}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '2.5rem', height: '2.5rem', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '50%', cursor: 'pointer', transition: 'background 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.background = '#e5e7eb'}
             onMouseLeave={e => e.currentTarget.style.background = '#f3f4f6'}
@@ -199,6 +239,6 @@ const TicketPreview: React.FC<Props> = ({ client, ticket, template }) => {
       </div>
     </div>
   );
-};
+});
 
 export default TicketPreview;

@@ -43,7 +43,7 @@ export const Layout: React.FC = () => {
             <Users size={20} /> Clientes
           </NavLink>
           <NavLink to="/admin/plantilla" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`} onClick={close}>
-            <ImageIcon size={20} /> Plantilla
+            <ImageIcon size={20} /> Boletas
           </NavLink>
           <NavLink to="/admin/configuracion" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`} onClick={close}>
             <Settings size={20} /> Configuración

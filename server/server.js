@@ -216,6 +216,25 @@ app.post('/api/templates', (req, res) => {
   );
 });
 
+app.delete('/api/templates/:id', (req, res) => {
+  db.run('DELETE FROM templates WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Plantilla eliminada' });
+  });
+});
+
+app.put('/api/templates/:id', (req, res) => {
+  const { name, imageUrl, qrX, qrY, qrWidth, qrHeight, eventId } = req.body;
+  db.run(
+    'UPDATE templates SET name=?, imageUrl=?, qrX=?, qrY=?, qrWidth=?, qrHeight=?, eventId=? WHERE id=?',
+    [name, imageUrl, qrX, qrY, qrWidth, qrHeight, eventId || null, req.params.id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: req.params.id, name, imageUrl, qrX, qrY, qrWidth, qrHeight, eventId });
+    }
+  );
+});
+
 // Boletas
 app.get('/api/boletas', (req, res) => {
   db.all('SELECT * FROM boletas', [], (err, rows) => {

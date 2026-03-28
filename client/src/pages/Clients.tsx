@@ -48,7 +48,6 @@ const Clients: React.FC = () => {
   const [isBoletasOpen, setIsBoletasOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [clientBoletas, setClientBoletas] = useState<any[]>([]);
-  const [templateToRender, setTemplateToRender] = useState<any>(null);
   const [boletasLoading, setBoletasLoading] = useState(false);
 
   // Create form
@@ -129,9 +128,14 @@ const Clients: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!selectedClient || !confirm(`¿Eliminar a ${selectedClient.name} y todas sus boletas?`)) return;
+    if (!selectedClient) return;
+    setConfirmDeleteClient(false);
     await fetch(`${API_URL}/api/clients/${selectedClient.id}`, { method: 'DELETE' });
     setIsDetailOpen(false); fetchClients();
+  };
+
+  const handleDeleteClientRequest = () => {
+    setConfirmDeleteClient(true);
   };
 
   const openBoletas = async () => {
@@ -143,12 +147,13 @@ const Clients: React.FC = () => {
       const res = await fetch(`${API_URL}/api/clients/${selectedClient.id}/boletas`);
       const data = await res.json();
       setClientBoletas(Array.isArray(data) ? data : []);
-      const firstWithTemplate = Array.isArray(data) ? data.find((t: any) => t.templateId) : null;
-      const tpl = firstWithTemplate
-        ? templates.find((x: any) => x.id === firstWithTemplate.templateId) || templates[0]
-        : templates[0] || null;
-      setTemplateToRender(tpl);
     } finally { setBoletasLoading(false); }
+  };
+
+  // Lookup the template object for a given boleta using its templateId
+  const getBoletaTemplate = (boleta: any) => {
+    if (!boleta.templateId) return null;
+    return templates.find((t: any) => t.id === boleta.templateId) || null;
   };
 
   const filtered = clients.filter(c =>
@@ -157,9 +162,11 @@ const Clients: React.FC = () => {
     (c.cedula && c.cedula.toLowerCase().includes(search.toLowerCase()))
   );
 
-  // Per-boleta edit
+  // Per-boleta edit & delete
   const [editingBoleta, setEditingBoleta] = useState<any>(null);
   const [boletaEditEventId, setBoletaEditEventId] = useState('');
+  const [confirmDeleteBoletaId, setConfirmDeleteBoletaId] = useState<string | null>(null);
+  const [confirmDeleteClient, setConfirmDeleteClient] = useState(false);
 
   const handleBoletaEdit = async () => {
     if (!editingBoleta) return;
@@ -176,7 +183,7 @@ const Clients: React.FC = () => {
   };
 
   const handleBoletaDelete = async (boletaId: string) => {
-    if (!confirm('¿Eliminar esta boleta? Esta acción no se puede deshacer.')) return;
+    setConfirmDeleteBoletaId(null);
     await fetch(`${API_URL}/api/boletas/${boletaId}`, { method: 'DELETE' });
     setClientBoletas(prev => prev.filter(b => b.id !== boletaId));
     fetchClients();
@@ -379,24 +386,43 @@ const Clients: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-                {[
-                  { label: 'Boletas', icon: <Ticket size={22} />, bg: '#eff6ff', color: '#2563eb', action: () => { openBoletas(); } },
-                  { label: 'Editar', icon: <Edit2 size={22} />, bg: '#f9fafb', color: '#374151', action: () => setIsEditing(true) },
-                  { label: 'Eliminar', icon: <Trash2 size={22} />, bg: '#fef2f2', color: '#dc2626', action: handleDelete },
-                ].map(item => (
-                  <button key={item.label} type="button" onClick={item.action} style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
-                    padding: '1.125rem 0.5rem', border: 'none', borderRadius: '1rem',
-                    background: item.bg, color: item.color, cursor: 'pointer',
-                    fontWeight: 700, fontSize: '0.8125rem', transition: 'filter 0.2s'
-                  }}
-                    onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(0.95)')}
-                    onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
-                  >
-                    {item.icon} {item.label}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                  {[
+                    { label: 'Boletas', icon: <Ticket size={22} />, bg: '#eff6ff', color: '#2563eb', action: () => { openBoletas(); } },
+                    { label: 'Editar', icon: <Edit2 size={22} />, bg: '#f9fafb', color: '#374151', action: () => setIsEditing(true) },
+                    { label: 'Eliminar', icon: <Trash2 size={22} />, bg: '#fef2f2', color: '#dc2626', action: handleDeleteClientRequest },
+                  ].map(item => (
+                    <button key={item.label} type="button" onClick={item.action} style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+                      padding: '1.125rem 0.5rem', border: 'none', borderRadius: '1rem',
+                      background: item.bg, color: item.color, cursor: 'pointer',
+                      fontWeight: 700, fontSize: '0.8125rem', transition: 'filter 0.2s'
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(0.95)')}
+                      onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
+                    >
+                      {item.icon} {item.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Inline client delete confirmation */}
+                {confirmDeleteClient && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '1rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <p style={{ margin: 0, fontWeight: 700, color: '#991b1b', fontSize: '0.875rem' }}>
+                      ⚠️ ¿Eliminar a <strong>{selectedClient?.name}</strong> y todas sus boletas? Esta acción no se puede deshacer.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button type="button" className="btn" style={{ background: '#dc2626', color: '#fff', borderRadius: '0.75rem', flex: 1 }} onClick={handleDelete}>
+                        Sí, eliminar
+                      </button>
+                      <button type="button" className="btn btn-ghost" style={{ borderRadius: '0.75rem', flex: 1 }} onClick={() => setConfirmDeleteClient(false)}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -455,7 +481,7 @@ const Clients: React.FC = () => {
                             type="button"
                             className="btn btn-ghost"
                             style={{ padding: '0.5rem', borderRadius: '0.625rem' }}
-                            onClick={() => { setEditingBoleta(boleta); setBoletaEditEventId(boleta.eventId || ''); }}
+                            onClick={() => { setEditingBoleta(boleta); setBoletaEditEventId(boleta.eventId || ''); setConfirmDeleteBoletaId(null); }}
                           >
                             <Edit2 size={16} />
                           </button>
@@ -463,12 +489,27 @@ const Clients: React.FC = () => {
                             type="button"
                             className="btn btn-danger"
                             style={{ padding: '0.5rem', borderRadius: '0.625rem' }}
-                            onClick={() => handleBoletaDelete(boleta.id)}
+                            onClick={() => setConfirmDeleteBoletaId(boleta.id)}
                           >
                             <Trash2 size={16} />
                           </button>
                         </div>
                       </div>
+
+                      {/* Inline boleta delete confirmation */}
+                      {confirmDeleteBoletaId === boleta.id ? (
+                        <div style={{ padding: '0.875rem 1rem', background: '#fef2f2', borderBottom: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#991b1b', flex: 1 }}>⚠️ ¿Eliminar esta boleta? No se puede deshacer.</span>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button type="button" className="btn" style={{ background: '#dc2626', color: '#fff', borderRadius: '0.625rem', padding: '0.375rem 0.875rem', fontSize: '0.8125rem', fontWeight: 700 }} onClick={() => handleBoletaDelete(boleta.id)}>
+                              Eliminar
+                            </button>
+                            <button type="button" className="btn btn-ghost" style={{ borderRadius: '0.625rem', padding: '0.375rem 0.875rem', fontSize: '0.8125rem' }} onClick={() => setConfirmDeleteBoletaId(null)}>
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
 
                       {/* Editing state */}
                       {editingBoleta?.id === boleta.id ? (
@@ -485,9 +526,9 @@ const Clients: React.FC = () => {
                         </div>
                       ) : null}
 
-                      {/* Ticket Preview Render */}
+                      {/* Ticket Preview Render - uses the boleta's specific template */}
                       <div style={{ padding: '1rem', background: '#fff' }}>
-                        <TicketPreview client={selectedClient} ticket={boleta} template={templateToRender} />
+                        <TicketPreview client={selectedClient} ticket={boleta} template={getBoletaTemplate(boleta)} />
                       </div>
                     </div>
                   ))}

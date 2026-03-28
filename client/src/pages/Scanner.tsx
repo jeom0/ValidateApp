@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { API_URL } from '../config';
-import { CheckCircle, XCircle, ArrowLeft, Camera, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowLeft, Camera, RefreshCw, Share2 } from 'lucide-react';
 import { BrowserMultiFormatReader } from '@zxing/library';
 
 type ScanStatus = 'idle' | 'valid' | 'used' | 'invalid' | 'loading';
@@ -9,6 +9,7 @@ const Scanner: React.FC = () => {
   const [status, setStatus] = useState<ScanStatus>('idle');
   const [message, setMessage] = useState('Apunta la cámara al código QR');
   const [clientInfo, setClientInfo] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const lastScanRef = useRef<number>(0);
@@ -65,6 +66,12 @@ const Scanner: React.FC = () => {
     setTimeout(() => { setStatus('idle'); setMessage('Apunta la cámara al código QR'); setClientInfo(null); }, 4500);
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.origin + '/scan');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
   const overlayBg: Record<ScanStatus, string> = {
     idle:    'rgba(0,0,0,0.25)',
     loading: 'rgba(0,0,0,0.5)',
@@ -95,7 +102,14 @@ const Scanner: React.FC = () => {
             <Camera size={16} /> Escáner Activo
           </div>
 
-          <div style={{ width: 48 }} />
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            style={{ background: copied ? 'rgba(5,150,105,0.3)' : 'rgba(255,255,255,0.15)', border: `1px solid ${copied ? 'rgba(5,150,105,0.8)' : 'rgba(255,255,255,0.25)'}`, borderRadius: '50%', width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', backdropFilter: 'blur(8px)', transition: 'all 0.2s' }}
+            title="Copiar enlace público"
+          >
+            {copied ? <CheckCircle size={20} style={{ color: '#6ee7b7' }} /> : <Share2 size={20} />}
+          </button>
         </div>
 
         {/* Center QR frame */}
