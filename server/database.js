@@ -1,12 +1,32 @@
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-
-const dbPath = path.resolve(__dirname, 'data.db');
-console.log('Database path:', dbPath);
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) console.error('Database connection error:', err.message);
-  else console.log('Connected to SQLite database');
-});
+let sqlite3;
+let db;
+try {
+  sqlite3 = require('sqlite3').verbose();
+  const dbPath = path.resolve(__dirname, 'data.db');
+  console.log('Database path:', dbPath);
+  db = new sqlite3.Database(dbPath, (err) => {
+    if (err) console.error('Database connection error:', err.message);
+    else console.log('Connected to SQLite database');
+  });
+} catch (err) {
+  console.warn('\n======================================================');
+  console.warn('⚠️  SQLite3 binary missing - Running in Dummy Mode ⚠️');
+  console.warn('Hostinger auto-deploy blocked the native module download.');
+  console.warn('Please run "npm install" via Hostinger Terminal to fix.');
+  console.warn('======================================================\n');
+  
+  // Create a dummy db object that won't crash the server.js initialization
+  db = {
+    serialize: (cb) => {
+        try { cb(); } catch(e){}
+    },
+    run: () => {},
+    get: (q, p, cb) => { if(cb) cb(null, null); else if(typeof p === 'function') p(null, null); },
+    all: (q, p, cb) => { if(cb) cb(null, []); else if(typeof p === 'function') p(null, []); },
+    prepare: () => ({ run: () => {}, finalize: () => {} })
+  };
+}
 
 db.serialize(() => {
   console.log('Initializing database tables...');
