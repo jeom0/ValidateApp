@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Hostinger Monorepo Root",
   "scripts": {
-    "build": "echo Build bypassed successfully.",
+    "build": "cd server && npm install --ignore-scripts",
     "start": "node server/server.js"
   }
 }
