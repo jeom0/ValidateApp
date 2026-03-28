@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
@@ -104,6 +105,7 @@ const Events: React.FC = () => {
   const [linkedTemplateIds, setLinkedTemplateIds] = useState<string[]>([]);
   const [savingDesign, setSavingDesign] = useState(false);
   const [designSaved, setDesignSaved] = useState(false);
+  const navigate = useNavigate();
 
   const linkedTemplates = templates.filter(t => linkedTemplateIds.includes(t.id));
 
@@ -417,24 +419,43 @@ const Events: React.FC = () => {
 
       {/* ASIGNAR DISEÑO Modal */}
       <Modal isOpen={isDesignOpen} onClose={() => setIsDesignOpen(false)} title="Asignar Diseños" maxWidth={600}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem' }}>
-            {templates.map(t => (
-              <div 
-                key={t.id} 
-                onClick={() => toggleTemplateLink(t.id)}
-                style={{ border: `2px solid ${linkedTemplateIds.includes(t.id) ? '#2563eb' : '#eee'}`, borderRadius: '1rem', cursor: 'pointer', overflow: 'hidden' }}
-              >
-                <div style={{ height: 80, background: '#eee' }}>{t.imageUrl && <img src={t.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={t.name} />}</div>
-                <p style={{ padding: '0.4rem', margin: 0, fontSize: '0.7rem', fontWeight: 800, textAlign: 'center' }}>{t.name}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minHeight: templates.length === 0 ? '250px' : 'auto', justifyContent: 'center' }}>
+          {templates.length === 0 ? (
+            <div style={{ padding: '1rem' }}>
+              <EmptyState 
+                icon={LayoutTemplate}
+                title="No hay plantillas disponibles"
+                description="Primero debes crear un diseño de boleta en el editor para poder asignarlo a este evento."
+                action={{ 
+                  label: "Ir al Editor de Plantillas", 
+                  onClick: () => {
+                    setIsDesignOpen(false);
+                    navigate('/admin/plantilla');
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem' }}>
+                {templates.map(t => (
+                  <div 
+                    key={t.id} 
+                    onClick={() => toggleTemplateLink(t.id)}
+                    style={{ border: `2px solid ${linkedTemplateIds.includes(t.id) ? '#2563eb' : '#eee'}`, borderRadius: '1rem', cursor: 'pointer', overflow: 'hidden' }}
+                  >
+                    <div style={{ height: 80, background: '#eee' }}>{t.imageUrl && <img src={t.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={t.name} />}</div>
+                    <p style={{ padding: '0.4rem', margin: 0, fontSize: '0.7rem', fontWeight: 800, textAlign: 'center' }}>{t.name}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          {designSaved && <div style={{ color: '#16a34a', fontWeight: 700, textAlign: 'center' }}>¡Diseños actualizados!</div>}
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-            <button className="btn btn-ghost" onClick={() => setIsDesignOpen(false)}>Cerrar</button>
-            <button className="btn btn-primary" disabled={savingDesign} onClick={handleSaveDesign}>{savingDesign ? 'Guardando...' : 'Guardar'}</button>
-          </div>
+              {designSaved && <div style={{ color: '#16a34a', fontWeight: 700, textAlign: 'center' }}>¡Diseños actualizados!</div>}
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <button className="btn btn-ghost" onClick={() => setIsDesignOpen(false)}>Cerrar</button>
+                <button className="btn btn-primary" disabled={savingDesign} onClick={handleSaveDesign}>{savingDesign ? 'Guardando...' : 'Guardar'}</button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
 

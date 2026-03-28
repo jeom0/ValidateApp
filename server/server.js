@@ -32,11 +32,19 @@ const logActivity = (data) => {
 // Login simple
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
+  console.log(`Login attempt for username: "${username}" with password: "${password}"`);
+  
   db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, row) => {
+    if (err) {
+      console.error('Login error:', err.message);
+      return res.status(500).json({ error: 'Error en el servidor' });
+    }
     if (row) {
-      res.json({ token: 'mock-jwt-token', user: { id: row.id, username: row.username } });
+      console.log('Login successful for user:', row.username);
+      res.json({ success: true, user: { id: row.id, username: row.username } });
     } else {
-      res.status(401).json({ error: 'Credenciales inválidas' });
+      console.log('Login failed: Invalid credentials for', username);
+      res.status(401).json({ error: 'Credenciales incorrectas' });
     }
   });
 });
@@ -405,6 +413,6 @@ app.get(/.*/, (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
