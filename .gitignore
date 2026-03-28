@@ -4,8 +4,8 @@ node_modules/
 .env
 
 # Client specific
-client/dist/
+# client/dist/ is now allowed for production deployment
 
 # Server specific
-server/data.db
+# server/data.db is now allowed for data persistence in production
 server/server_log.txt

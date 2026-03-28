@@ -16,21 +16,30 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      const res = await fetch(`${API_URL}/api/login`, {
+      const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password }),
       });
-      const data = await res.json();
       
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('admin_auth', 'true');
         navigate('/admin');
       } else {
-        setError(data.error || 'Credenciales inválidas');
+        const status = response.status;
+        console.error(`Login failed with status: ${status}`);
+        if (status === 405) {
+          setError('Error 405: El servidor no permite esta operación. Revisa el archivo .htaccess en Hostinger.');
+        } else if (status === 401) {
+          setError('Credenciales inválidas');
+        } else {
+          setError(`Error del servidor (${status})`);
+        }
       }
     } catch (err) {
-      setError('Error al conectar con el servidor');
+      console.error('Fetch error:', err);
+      setError('Error al conectar con el servidor. Verifica que el backend esté corriendo.');
     } finally {
       setLoading(false);
     }
@@ -121,6 +130,7 @@ const Login: React.FC = () => {
               placeholder="Usuario"
               value={username}
               onChange={e => setUsername(e.target.value)}
+              autoComplete="username"
               required
               style={{
                 width: '100%',
@@ -147,6 +157,7 @@ const Login: React.FC = () => {
               placeholder="Contraseña"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
               style={{
                 width: '100%',
