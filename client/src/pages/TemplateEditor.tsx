@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
 import { API_URL } from '../config';
 import { QRCodeSVG } from 'qrcode.react';
-import { Save, Upload, CheckCircle2, AlertCircle, ImageIcon, Move, Plus, Trash2, Edit2 } from 'lucide-react';
+import { Save, Upload, CheckCircle2, AlertCircle, ImageIcon, Move, Plus, Trash2, Edit2, Calendar, Ticket, LayoutTemplate } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
+import EmptyState from '../components/EmptyState';
 
 interface Template {
   id: string;
@@ -15,6 +16,8 @@ interface Template {
   qrWidth: number;
   qrHeight: number;
   eventId?: string;
+  eventName?: string;
+  clientCount?: number;
 }
 
 const defaultTemplate: Template = {
@@ -36,7 +39,6 @@ const TemplateEditor: React.FC = () => {
     try {
       const r = await fetch(`${API_URL}/api/templates`);
       const data = await r.json();
-      // Only show templates that have a name (filter out phantom/empty ones)
       setTemplates(Array.isArray(data) ? data.filter((t: Template) => t.name && t.name.trim() !== '') : []);
     } catch (err) {
       console.error(err);
@@ -77,13 +79,11 @@ const TemplateEditor: React.FC = () => {
   };
 
   const handleSave = async () => {
-    // Validate name
     if (!activeTemplate.name || !activeTemplate.name.trim()) {
       setSaveStatus('error');
       setMessage('El nombre de la boleta es obligatorio');
       return;
     }
-    // Validate image
     if (!activeTemplate.imageUrl) {
       setSaveStatus('error');
       setMessage('Debes subir una imagen de fondo');
@@ -109,7 +109,7 @@ const TemplateEditor: React.FC = () => {
         setSaveStatus('success');
         setMessage(isExisting ? 'Boleta actualizada' : 'Boleta guardada');
         await fetchTemplates();
-        setTimeout(() => setIsEditorOpen(false), 1200);
+        setIsEditorOpen(false);
       } else {
         const err = await res.json();
         throw new Error(err.error || 'Error del servidor');
@@ -144,7 +144,6 @@ const TemplateEditor: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.1 }}>
@@ -159,23 +158,19 @@ const TemplateEditor: React.FC = () => {
         </Button>
       </div>
 
-      {/* Grid */}
-      {loading && templates.length === 0 ? (
-        <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280', fontWeight: 600 }}>Cargando boletas...</div>
+      {loading ? (
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#6b7280', fontSize: '1.125rem', fontWeight: 600 }}>Cargando diseños...</div>
       ) : templates.length === 0 ? (
-        <div className="card" style={{ border: '2px dashed #e5e7eb', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4rem 2rem', textAlign: 'center' }}>
-          <div style={{ width: 64, height: 64, background: '#f3f4f6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-            <ImageIcon size={32} style={{ color: '#9ca3af' }} />
-          </div>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.25rem' }}>Sin diseños de boleta</h3>
-          <p style={{ color: '#6b7280', marginBottom: '1.5rem', fontWeight: 500 }}>Crea tu primer diseño para asignarlo a los asistentes.</p>
-          <Button onClick={handleOpenNew}>Crear Ahora</Button>
-        </div>
+        <EmptyState 
+          icon={LayoutTemplate} 
+          title="Sin Diseños" 
+          description="Crea plantillas visuales personalizadas para tus boletas. Puedes tener múltiples estilos por cada evento." 
+          action={{ label: "Crear Primer Diseño", onClick: handleOpenNew }}
+        />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
           {templates.map(t => (
             <div key={t.id} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              {/* Thumbnail */}
               <div style={{ width: '100%', aspectRatio: '1/1.4', background: '#f3f4f6', borderRadius: '0.875rem', overflow: 'hidden', position: 'relative', marginBottom: '0.875rem' }}>
                 {t.imageUrl ? (
                   <img src={t.imageUrl} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -186,12 +181,19 @@ const TemplateEditor: React.FC = () => {
                 )}
               </div>
 
-              {/* Name */}
               <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                 {t.name}
               </h3>
 
-              {/* Action buttons — clearly separated */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', fontSize: '0.8125rem', fontWeight: 600 }}>
+                  <Calendar size={13} /> {t.eventName || 'Sin evento'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', fontSize: '0.8125rem', fontWeight: 600 }}>
+                  <Ticket size={13} /> {t.clientCount || 0} boletas emitidas
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
                 <button
                   type="button"
@@ -218,24 +220,30 @@ const TemplateEditor: React.FC = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Confirmar Eliminación" maxWidth={420}>
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Eliminar Plantilla y Boletas" maxWidth={420}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <p style={{ color: '#374151', fontWeight: 500, lineHeight: 1.6 }}>
-            ¿Estás seguro de que deseas eliminar este diseño de boleta? Esta acción <strong>no se puede deshacer</strong> y los clientes que tenían esta boleta asignada no podrán verla.
-          </p>
+          <div style={{ color: '#374151', fontWeight: 500, lineHeight: 1.6 }}>
+            <p style={{ marginBottom: '1rem' }}>¿Estás seguro de que deseas eliminar este diseño de boleta?</p>
+            {templates.find(t => t.id === deleteConfirmId)?.clientCount ? (
+              <div style={{ background: '#fff5f5', border: '1px solid #fecaca', padding: '1rem', borderRadius: '0.75rem', color: '#dc2626', fontWeight: 700, display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <AlertCircle size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>¡CUIDADO! Se eliminarán permanentemente {templates.find(t => t.id === deleteConfirmId)?.clientCount} boletas enlazadas a esta plantilla.</span>
+              </div>
+            ) : (
+              <p>Esta acción no se puede deshacer y el diseño dejará de estar disponible.</p>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
             <button onClick={() => setDeleteConfirmId(null)} type="button" className="btn" style={{ background: '#f3f4f6', color: '#374151', borderRadius: '0.875rem' }}>
               Cancelar
             </button>
-            <button onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)} type="button" className="btn" style={{ background: '#dc2626', color: '#fff', borderRadius: '0.875rem' }}>
-              <Trash2 size={16} /> Eliminar
+            <button onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)} type="button" className="btn" style={{ background: '#dc2626', color: '#fff', borderRadius: '0.875rem', gap: '0.5rem' }}>
+              <Trash2 size={16} /> Eliminar Todo
             </button>
           </div>
         </div>
       </Modal>
 
-      {/* Editor Modal */}
       <Modal isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)} title={activeTemplate.id && templates.some(t => t.id === activeTemplate.id) ? 'Editar Boleta' : 'Nueva Boleta'} maxWidth={800}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
@@ -272,7 +280,6 @@ const TemplateEditor: React.FC = () => {
             Arrastra el recuadro verde "QR" para posicionarlo en tu boleta. También puedes redimensionarlo desde las esquinas.
           </div>
 
-          {/* Canvas */}
           <div
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}

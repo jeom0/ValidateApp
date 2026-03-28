@@ -41,6 +41,7 @@ const Clients: React.FC = () => {
   const [editCedula, setEditCedula] = useState('');
   const [addTickets, setAddTickets] = useState(0);
   const [addEventId, setAddEventId] = useState('');
+  const [addTemplateId, setAddTemplateId] = useState('');
   const [addEventError, setAddEventError] = useState(false);
 
   const fetchClients = async () => {
@@ -81,8 +82,10 @@ const Clients: React.FC = () => {
   const openDetail = (c: any) => {
     setSelectedClient(c);
     setEditName(c.name); setEditEmail(c.email || ''); setEditCedula(c.cedula || '');
-    setAddTickets(0); setIsEditing(false);
-    setIsDetailOpen(true);
+      setAddTickets(0); 
+      if (templates.length > 0) setAddTemplateId(templates[0].id);
+      setIsEditing(false);
+      setIsDetailOpen(true);
   };
 
   const handleUpdate = async () => {
@@ -95,7 +98,7 @@ const Clients: React.FC = () => {
     await fetch(`${API_URL}/api/clients/${selectedClient.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editName, email: editEmail, cedula: editCedula, addTickets, eventId: addEventId })
+      body: JSON.stringify({ name: editName, email: editEmail, cedula: editCedula, addTickets, eventId: addEventId, templateId: addTemplateId })
     });
     setIsEditing(false); setAddTickets(0);
     setSelectedClient({ ...selectedClient, name: editName, email: editEmail, cedula: editCedula });
@@ -212,10 +215,15 @@ const Clients: React.FC = () => {
                 
                 <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '1rem', border: '1px solid #eee' }}>
                   <label className="input-label">Agregar Boletas</label>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    <Stepper value={addTickets} onChange={setAddTickets} min={0} />
-                    <select className="input" value={addEventId} onChange={e => setAddEventId(e.target.value)}>
-                      {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', alignItems: 'center' }}>
+                    <Stepper value={addTickets} onChange={n => { setAddTickets(n); if (n === 0) setAddEventError(false); }} min={0} max={100} />
+                    <select className="input" value={addEventId} onChange={e => setAddEventId(e.target.value)} style={{ cursor: 'pointer', height: '3rem' }}>
+                      <option value="">— Evento —</option>
+                      {events.map((ev: any) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                    </select>
+                    <select className="input" value={addTemplateId} onChange={e => setAddTemplateId(e.target.value)} style={{ cursor: 'pointer', height: '3rem' }}>
+                      <option value="">— Diseño —</option>
+                      {templates.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                   </div>
                 </div>

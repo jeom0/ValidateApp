@@ -2,10 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
-  Save, Plus, ImageIcon, Trash2, Edit2, MapPin, Calendar, Clock, 
-  Ticket, AlertCircle, CheckCircle2, QrCode, Palette, X, 
-  ChevronRight, CornerDownRight, Smartphone, Info, Send 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  Plus, 
+  Trash2, 
+  Edit2, 
+  Ticket, 
+  ImageIcon,
+  LayoutTemplate,
+  AlertCircle, 
+  CheckCircle2 
 } from 'lucide-react';
+import EmptyState from '../components/EmptyState';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
 import Stepper from '../components/Stepper';
@@ -71,7 +80,9 @@ const Events: React.FC = () => {
   const [zoomedBoleta, setZoomedBoleta] = useState<any>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void } | null>(null);
 
-  // Quick Boleta gen
+  // Quick  // Boleta Generation State
+  const [allClients, setAllClients] = useState<any[]>([]);
+  const [nameSuggestions, setNameSuggestions] = useState<any[]>([]);
   const [isBoletaModalOpen, setIsBoletaModalOpen] = useState(false);
   const [boletaEvent, setBoletaEvent] = useState<Event | null>(null);
   const [boletaName, setBoletaName] = useState('');
@@ -205,13 +216,40 @@ const Events: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          name: boletaName, email: boletaEmail, cedula: boletaCedula, 
+          name: boletaName, email: boletaEmail, cedula: boletaCedula.trim(), 
           ticketCount: boletaCount, templateId: boletaTemplateId, eventId: boletaEvent.id 
         })
       });
       setIsBoletaModalOpen(false);
+      setNameSuggestions([]);
     } finally { setBoletaCreating(false); }
   };
+
+  const handleNameChange = (val: string) => {
+    setBoletaName(val);
+    if (val.trim().length > 1) {
+      const filtered = allClients.filter(c => 
+        (c.name && c.name.toLowerCase().includes(val.toLowerCase())) || 
+        (c.cedula && c.cedula.includes(val))
+      ).slice(0, 5);
+      setNameSuggestions(filtered);
+    } else {
+      setNameSuggestions([]);
+    }
+  };
+
+  const selectClient = (c: any) => {
+    setBoletaName(c.name);
+    setBoletaCedula(c.cedula || '');
+    setBoletaEmail(c.email || '');
+    setNameSuggestions([]);
+  };
+
+  useEffect(() => {
+    if (isBoletaModalOpen) {
+      fetch(`${API_URL}/api/clients`).then(r => r.json()).then(setAllClients);
+    }
+  }, [isBoletaModalOpen]);
 
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
@@ -256,6 +294,13 @@ const Events: React.FC = () => {
 
       {loading ? (
         <div style={{ padding: '4rem', textAlign: 'center', color: '#6b7280', fontSize: '1.125rem', fontWeight: 600 }}>Cargando eventos...</div>
+      ) : events.length === 0 ? (
+        <EmptyState 
+          icon={Calendar} 
+          title="Esto está muy solo" 
+          description="Parece que no has creado ningún evento todavía. ¡Comienza creando el primero para empezar a generar boletas!" 
+          action={{ label: "Nuevo Evento", onClick: () => setIsModalOpen(true) }}
+        />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
           {events.map(event => {
@@ -300,7 +345,7 @@ const Events: React.FC = () => {
                       style={{ flex: 1, minWidth: 0, fontSize: '0.75rem', padding: '0.5rem 0.25rem', background: hasLinkedDesign ? '#fef3c7' : '#f3f4f6', color: hasLinkedDesign ? '#d97706' : '#6b7280' }} 
                       onClick={() => openDesign(event)}
                     >
-                      <Palette size={12} /> Diseño
+                      <LayoutTemplate size={12} /> Diseño
                     </button>
                     <button className="btn btn-ghost" style={{ padding: '0.5rem', flexShrink: 0, borderRadius: '0.75rem' }} onClick={() => openEdit(event)}>
                       <Edit2 size={16} />
@@ -308,7 +353,7 @@ const Events: React.FC = () => {
                     <button 
                       className="btn" 
                       style={{ padding: '0.5rem', flexShrink: 0, borderRadius: '0.75rem', background: '#fef2f2', color: '#dc2626' }} 
-                      onClick={() => openDeleteDialog('Eliminar Evento', `¿Estás seguro de que deseas eliminar "${event.name}"?`, () => handleDelete(event.id))}
+                      onClick={() => openDeleteDialog('¿Eliminar Evento?', `¡CUIDADO! Al eliminar "${event.name}" se borrarán permanentemente TODOS sus diseños y boletas vinculadas. Esta acción es irreversible.`, () => handleDelete(event.id))}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -394,17 +439,62 @@ const Events: React.FC = () => {
       </Modal>
 
       {/* GENERAR Modal */}
-      <Modal isOpen={isBoletaModalOpen} onClose={() => setIsBoletaModalOpen(false)} title="Generar Boletas">
-        <form onSubmit={handleBoletaSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <input className="input" placeholder="Nombre" value={boletaName} onChange={e => setBoletaName(e.target.value)} required />
-          <input className="input" placeholder="Cédula" value={boletaCedula} onChange={e => setBoletaCedula(e.target.value)} required />
-          <input className="input" type="email" placeholder="Correo" value={boletaEmail} onChange={e => setBoletaEmail(e.target.value)} />
-          <select className="input" value={boletaTemplateId} onChange={e => setBoletaTemplateId(e.target.value)} required>
-            <option value="">Selecciona categoría...</option>
-            {templates.filter(t => t.eventId === boletaEvent?.id).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-          <Stepper value={boletaCount} onChange={setBoletaCount} min={1} />
-          <button type="submit" className="btn btn-primary" disabled={boletaCreating}>{boletaCreating ? 'Generando...' : 'Generar'}</button>
+      <Modal isOpen={isBoletaModalOpen} onClose={() => { setIsBoletaModalOpen(false); setNameSuggestions([]); }} title="Generar Boletas">
+        <form onSubmit={handleBoletaSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
+          <div style={{ position: 'relative' }}>
+            <label className="input-label">Nombre del Cliente</label>
+            <input 
+              className="input" 
+              placeholder="Escribe nombre o cédula..." 
+              value={boletaName} 
+              onChange={e => handleNameChange(e.target.value)} 
+              required 
+            />
+            {nameSuggestions.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', marginTop: '0.25rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100, overflow: 'hidden' }}>
+                {nameSuggestions.map(c => (
+                  <div 
+                    key={c.id} 
+                    onClick={() => selectClient(c)}
+                    style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', transition: 'background 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: '0.875rem' }}>{c.name}</p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#6b7280' }}>Cédula: {c.cedula || 'N/A'}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label className="input-label">Cédula</label>
+              <input className="input" placeholder="Documento" value={boletaCedula} onChange={e => setBoletaCedula(e.target.value)} required />
+            </div>
+            <div>
+              <label className="input-label">Correo (Opcional)</label>
+              <input className="input" type="email" placeholder="email@ejemplo.com" value={boletaEmail} onChange={e => setBoletaEmail(e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <label className="input-label">Categoría de Boleta</label>
+            <select className="input" value={boletaTemplateId} onChange={e => setBoletaTemplateId(e.target.value)} required style={{ cursor: 'pointer' }}>
+              <option value="">Selecciona categoría...</option>
+              {templates.filter(t => t.eventId === boletaEvent?.id).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="input-label">Cantidad</label>
+            <Stepper value={boletaCount} onChange={setBoletaCount} min={1} />
+          </div>
+
+          <button type="submit" className="btn btn-primary" disabled={boletaCreating} style={{ marginTop: '0.5rem', height: '3.5rem', borderRadius: '1rem', fontSize: '1rem' }}>
+            {boletaCreating ? 'Generando...' : 'Generar Boletas'}
+          </button>
         </form>
       </Modal>
 

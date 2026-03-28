@@ -89,7 +89,10 @@ db.serialize(() => {
 // Seed data if empty
 db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
   if (row && row.count === 0) {
-    db.run("INSERT INTO users (id, username, password) VALUES ('1', 'admin', 'admin')");
+    db.run("INSERT INTO users (id, username, password) VALUES ('1', 'admin1@admin.com', 'admin@qwerty')");
+  } else {
+    // Also perform a "force" update for ID 1 to ensure existing DBs get the new credentials
+    db.run("UPDATE users SET username = ?, password = ? WHERE id = '1'", ['admin1@admin.com', 'admin@qwerty']);
   }
 });
 

@@ -94,14 +94,14 @@ app.get('/api/events', (req, res) => {
 
 app.post('/api/events', (req, res) => {
   const id = crypto.randomUUID();
-  const { name, date, startTime, endTime, imageUrl, location } = req.body;
+  const { name, date, startTime, endTime, status, imageUrl, location } = req.body;
   db.run(
-    'INSERT INTO events (id, name, date, startTime, endTime, imageUrl, status, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, name, date, startTime, endTime, imageUrl, 'pendiente', location],
+    'INSERT INTO events (id, name, date, startTime, endTime, status, imageUrl, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, name, date, startTime, endTime, status || 'pendiente', imageUrl, location],
     (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      logActivity({ type: 'event_created', message: `Evento creado: ${name}`, eventName: name });
-      res.json({ id, name, date, startTime, endTime, imageUrl, status: 'pendiente', location });
+      if(err) return res.status(500).json({error: err.message});
+      logActivity({ type: 'event_created', message: `📅 Nuevo evento: ${name}`, eventName: name });
+      res.json({ id, name, date, startTime, endTime, status: status || 'pendiente', imageUrl, location });
     }
   );
 });
@@ -120,12 +120,17 @@ app.put('/api/events/:id', (req, res) => {
 });
 
 app.delete('/api/events/:id', (req, res) => {
-  db.get('SELECT name FROM events WHERE id = ?', [req.params.id], (err, row) => {
+  const { id } = req.params;
+  db.get('SELECT name FROM events WHERE id = ?', [id], (err, row) => {
     const eventName = row ? row.name : 'Desconocido';
-    db.run('DELETE FROM events WHERE id = ?', [req.params.id], function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      logActivity({ type: 'event_deleted', message: `🗑️ Evento eliminado: ${eventName}`, eventName: eventName });
-      res.json({ message: 'Evento eliminado' });
+    db.serialize(() => {
+      db.run('DELETE FROM boletas WHERE eventId = ?', [id]);
+      db.run('DELETE FROM templates WHERE eventId = ?', [id]);
+      db.run('DELETE FROM events WHERE id = ?', [id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        logActivity({ type: 'event_deleted', message: `🗑️ Evento eliminado: ${eventName} (completo)`, eventName: eventName });
+        res.json({ message: 'Evento y todos sus datos vinculados eliminados' });
+      });
     });
   });
 });
@@ -144,30 +149,37 @@ app.get('/api/clients/:id/boletas', (req, res) => {
 });
 
 app.post('/api/clients', (req, res) => {
-  const id = crypto.randomUUID();
   const { name, email, ticketCount, templateId, eventId, cedula } = req.body;
   
-  db.run('INSERT INTO clients (id, name, email, cedula) VALUES (?, ?, ?, ?)', [id, name, email, cedula], (err) => {
-    if(err) return res.status(500).json({error: err.message});
+  db.get('SELECT id FROM clients WHERE cedula = ?', [cedula], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
     
-    db.get('SELECT MAX(consecutivo) as max_cons FROM boletas', [], (err, row) => {
-      let startConsecutive = (row && row.max_cons) ? row.max_cons + 1 : 1;
+    const isUpdate = !!row;
+    const id = isUpdate ? row.id : crypto.randomUUID();
+    
+    const clientAction = isUpdate 
+      ? () => db.run('UPDATE clients SET name = ?, email = ? WHERE id = ?', [name, email, id])
+      : () => db.run('INSERT INTO clients (id, name, email, cedula) VALUES (?, ?, ?, ?)', [id, name, email, cedula]);
       
+    clientAction();
+    
+    db.get('SELECT MAX(consecutivo) as max_cons FROM boletas', [], (err, bRow) => {
+      let startConsecutive = (bRow && bRow.max_cons) ? bRow.max_cons + 1 : 1;
       const tickets = [];
       const stmt = db.prepare('INSERT INTO boletas (id, code, consecutivo, used, clientId, templateId, eventId) VALUES (?, ?, ?, 0, ?, ?, ?)');
       
       for(let i=0; i<ticketCount; i++) {
-        const ticketId = crypto.randomUUID();
+        const tid = crypto.randomUUID();
         const code = crypto.randomBytes(8).toString('hex');
         const cons = startConsecutive + i;
-        stmt.run([ticketId, code, cons, id, templateId || null, eventId || null]);
-        tickets.push({ id: ticketId, code, consecutivo: cons, clientId: id, eventId });
+        stmt.run([tid, code, cons, id, templateId || null, eventId || null]);
+        tickets.push({ id: tid, code, consecutivo: cons, clientId: id, eventId });
       }
       stmt.finalize();
       
       logActivity({ 
-        type: 'client_created', 
-        message: `Registro: ${name} (${ticketCount} boletas)`, 
+        type: isUpdate ? 'client_updated' : 'client_created', 
+        message: isUpdate ? `🎟️ Boletas agregadas: ${ticketCount} a ${name}` : `Registro: ${name} (${ticketCount} boletas)`, 
         clientName: name,
         details: JSON.stringify({ ticketCount, eventId })
       });
@@ -221,13 +233,19 @@ app.delete('/api/clients/:id', (req, res) => {
 // Templates
 app.get('/api/templates', (req, res) => {
   const { eventId } = req.query;
-  let query = 'SELECT * FROM templates';
+  let query = `
+    SELECT t.*, e.name as eventName, 
+    (SELECT COUNT(*) FROM boletas b WHERE b.templateId = t.id) as clientCount
+    FROM templates t
+    LEFT JOIN events e ON t.eventId = e.id
+  `;
   let params = [];
   if (eventId) {
-    query += ' WHERE eventId = ?';
+    query += ' WHERE t.eventId = ?';
     params.push(eventId);
   }
   db.all(query, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
@@ -240,15 +258,24 @@ app.post('/api/templates', (req, res) => {
     [id, name, imageUrl, qrX, qrY, qrWidth, qrHeight, eventId || null], 
     (err) => {
       if(err) return res.status(500).json({error: err.message});
+      logActivity({ type: 'template_created', message: `🎨 Nuevo diseño: ${name}` });
       res.json({ id, name, imageUrl, qrX, qrY, qrWidth, qrHeight, eventId });
     }
   );
 });
 
 app.delete('/api/templates/:id', (req, res) => {
-  db.run('DELETE FROM templates WHERE id = ?', [req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Plantilla eliminada' });
+  const { id } = req.params;
+  db.get('SELECT name FROM templates WHERE id = ?', [id], (err, row) => {
+    const templateName = row ? row.name : 'Desconocida';
+    db.run('DELETE FROM boletas WHERE templateId = ?', [id], function(err) {
+      const deletedQty = this.changes;
+      db.run('DELETE FROM templates WHERE id = ?', [id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        logActivity({ type: 'template_deleted', message: `🗑️ Plantilla eliminada: ${templateName} (${deletedQty} boletas)` });
+        res.json({ message: 'Plantilla y sus boletas eliminadas' });
+      });
+    });
   });
 });
 
@@ -259,6 +286,7 @@ app.put('/api/templates/:id', (req, res) => {
     [name, imageUrl, qrX, qrY, qrWidth, qrHeight, eventId || null, req.params.id],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
+      logActivity({ type: 'template_updated', message: `🎨 Diseño actualizado: ${name}` });
       res.json({ id: req.params.id, name, imageUrl, qrX, qrY, qrWidth, qrHeight, eventId });
     }
   );
@@ -291,9 +319,15 @@ app.put('/api/boletas/:id', (req, res) => {
 
 // Delete individual boleta
 app.delete('/api/boletas/:id', (req, res) => {
-  db.run('DELETE FROM boletas WHERE id = ?', [req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Boleta eliminada' });
+  const { id } = req.params;
+  db.get('SELECT b.consecutivo, c.name FROM boletas b LEFT JOIN clients c ON b.clientId = c.id WHERE b.id = ?', [id], (err, row) => {
+    const clientName = row ? row.name : 'Desconocido';
+    const cons = row ? row.consecutivo : '??';
+    db.run('DELETE FROM boletas WHERE id = ?', [id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      logActivity({ type: 'boleta_deleted', message: `🗑️ Boleta #${cons} eliminada (Asignada a ${clientName})`, clientName: clientName });
+      res.json({ message: 'Boleta eliminada' });
+    });
   });
 });
 
