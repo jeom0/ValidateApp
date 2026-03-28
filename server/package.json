@@ -1,0 +1,23 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.7.0",
+    "qrcode.react": "^4.2.0",
+    "react-rnd": "^10.5.3",
+    "react-router-dom": "^7.13.2",
+    "sqlite3": "^6.0.1",
+    "uuid": "^13.0.0"
+  }
+}

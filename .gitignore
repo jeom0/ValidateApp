@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+*.log
+.env
+
+# Client specific
+client/dist/
+
+# Server specific
+server/data.db
+server/server_log.txt
