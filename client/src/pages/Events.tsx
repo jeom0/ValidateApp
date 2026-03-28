@@ -118,9 +118,18 @@ const Events: React.FC = () => {
   };
 
   const fetchTemplates = async () => {
-    const r = await fetch(`${API_URL}/api/templates`);
-    const d = await r.json();
-    setTemplates(Array.isArray(d) ? d.filter((t: any) => t.name) : []);
+    try {
+      console.log('Fetching templates from:', `${API_URL}/api/templates`);
+      const r = await fetch(`${API_URL}/api/templates`);
+      const d = await r.json();
+      console.log('Templates received:', d);
+      const filtered = Array.isArray(d) ? d.filter((t: any) => t && (t.name || t.id)) : [];
+      console.log('Templates after filter:', filtered);
+      setTemplates(filtered);
+    } catch (err) {
+      console.error('Error fetching templates:', err);
+      setTemplates([]);
+    }
   };
 
   useEffect(() => { fetchEvents(); fetchTemplates(); }, []);
