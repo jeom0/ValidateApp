@@ -424,10 +424,10 @@ const Events: React.FC = () => {
             <div style={{ padding: '1rem' }}>
               <EmptyState 
                 icon={LayoutTemplate}
-                title="No hay plantillas disponibles"
-                description="Primero debes crear un diseño de boleta en el editor para poder asignarlo a este evento."
+                title="Sin diseños disponibles"
+                description="Primero debes crear las boletas en el editor para poder asignarlas a este evento."
                 action={{ 
-                  label: "Ir al Editor de Plantillas", 
+                  label: "Ir al Editor de Boletas", 
                   onClick: () => {
                     setIsDesignOpen(false);
                     navigate('/admin/plantilla');
