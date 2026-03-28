@@ -6,6 +6,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
+    "build": "echo Build bypassed successfully.",
     "start": "node server/server.js"
   }
 }
