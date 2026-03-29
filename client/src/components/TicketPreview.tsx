@@ -1,6 +1,6 @@
 import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Download, Share2, MapPin, Calendar, Clock } from 'lucide-react';
+import { Download, Share2, Ticket as TicketIcon } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -167,15 +167,8 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
             </h2>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.85rem', fontWeight: 700 }}>
-                <MapPin size={16} style={{ color: '#3b82f6' }} /> {ticket.location || 'Lugar por definir'}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.85rem', fontWeight: 700 }}>
-                <Calendar size={16} style={{ color: '#3b82f6' }} /> 
-                {ticket.date ? new Date(ticket.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Fecha pendiente'}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.85rem', fontWeight: 700 }}>
-                <Clock size={16} style={{ color: '#3b82f6' }} /> {ticket.startTime || '--:--'} {ticket.endTime && `a ${ticket.endTime}`}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', fontSize: '0.9rem', fontWeight: 900, background: '#eff6ff', padding: '0.25rem 0.75rem', borderRadius: '8px', width: 'fit-content' }}>
+                <TicketIcon size={16} /> {ticket.templateName || 'DISEÑO ESTÁNDAR'}
               </div>
             </div>
           </div>

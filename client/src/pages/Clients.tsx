@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config';
 import { Modal } from '../components/Modal';
-import { Search, Edit2, Trash2, Ticket, ChevronRight, UserPlus, Plus, Minus, Calendar, CheckCircle2, Clock, Loader2, MapPin } from 'lucide-react';
+import { Search, Edit2, Trash2, Ticket, ChevronRight, UserPlus, Plus, Minus, Calendar, CheckCircle2, Clock, Loader2, MapPin, Download } from 'lucide-react';
 import TicketPreview from '../components/TicketPreview';
 import Stepper from '../components/Stepper';
 import EmptyState from '../components/EmptyState';
@@ -161,9 +161,14 @@ const Clients: React.FC = () => {
           <h1 style={{ fontSize: '2.25rem', fontWeight: 900, letterSpacing: '-0.04em', margin: 0 }}>Clientes</h1>
           <p style={{ color: '#6b7280', fontWeight: 500, margin: '0.25rem 0 0' }}>Gestión centralizada de asistentes.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsAddOpen(true)} style={{ padding: '0.75rem 1.5rem', height: '3.25rem' }}>
-          <UserPlus size={18} /> <span>Nuevo Cliente</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button className="btn btn-ghost" onClick={() => window.location.href = `${API_URL}/api/reports/all-boletas`} style={{ padding: '0.75rem 1.25rem', height: '3.25rem', border: '1px solid #eee' }}>
+            <Download size={18} /> <span>Informe CSV</span>
+          </button>
+          <button className="btn btn-primary" onClick={() => setIsAddOpen(true)} style={{ padding: '0.75rem 1.5rem', height: '3.25rem' }}>
+            <UserPlus size={18} /> <span>Nuevo Cliente</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -392,15 +397,10 @@ const Clients: React.FC = () => {
                         )}
                       </div>
                       
-                      {/* DETALLES LOGÍSTICOS DEL EVENTO (PEDIDOS POR EL USUARIO V5.10) */}
+                      {/* DISEÑO DE LA BOLETA (PEDIDO POR EL USUARIO V5.12) */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '0.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#6b7280', fontSize: '0.75rem', fontWeight: 600 }}>
-                          <MapPin size={14} style={{ color: '#3b82f6' }} /> {b.location || 'Lugar por definir'}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#6b7280', fontSize: '0.75rem', fontWeight: 600 }}>
-                          <Calendar size={14} style={{ color: '#3b82f6' }} /> 
-                          {b.date ? new Date(b.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Fecha pendiente'} 
-                          {b.startTime && ` • ${b.startTime}`}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 900, background: '#eff6ff', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
+                          <Ticket size={14} /> DISEÑO: {b.templateName || 'POR DEFINIR'}
                         </div>
                       </div>
                     </div>

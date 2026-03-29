@@ -244,17 +244,51 @@ app.get('/api/clients/:id/boletas', (req, res) => {
     SELECT b.*, 
            e.name as eventName, 
            e.imageUrl as eventImageUrl,
-           e.location,
-           e.date,
-           e.startTime,
-           e.endTime
+           t.name as templateName
     FROM boletas b 
     LEFT JOIN events e ON b.eventId = e.id 
+    LEFT JOIN templates t ON b.templateId = t.id
     WHERE b.clientId = ?
   `;
   db.all(query, [req.params.id], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
+  });
+});
+
+// REPORT: Export all boletas to CSV
+app.get('/api/reports/all-boletas', (req, res) => {
+  const query = `
+    SELECT b.consecutivo, 
+           c.name as clientName, 
+           c.cedula, 
+           e.name as eventName, 
+           t.name as templateName,
+           b.used,
+           b.fecha_uso
+    FROM boletas b
+    LEFT JOIN clients c ON b.clientId = c.id
+    LEFT JOIN events e ON b.eventId = e.id
+    LEFT JOIN templates t ON b.templateId = t.id
+    ORDER BY b.consecutivo ASC
+  `;
+  
+  db.all(query, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    
+    // Build CSV manually
+    let csv = "\uFEFF"; // UTF-8 BOM for Excel
+    csv += "Consecutivo,Cliente,Cedula,Evento,Tipo de Boleta,Estado,Fecha de Escaneo\n";
+    
+    rows.forEach(r => {
+      const estado = r.used ? "ESCANEADA" : "SIN ESCANEAR";
+      const fecha = r.fecha_uso || "---";
+      csv += `${r.consecutivo},"${r.clientName}","${r.cedula}","${r.eventName}","${r.templateName}",${estado},${fecha}\n`;
+    });
+    
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=informe_boletas.csv');
+    res.status(200).send(csv);
   });
 });
 
