@@ -63,23 +63,20 @@ const TicketContent: React.FC<{ ticket: any, template: any, width?: string | num
               width: `${template.qrWidth}%`,
               height: `${template.qrHeight}%`,
               zIndex: 50,
-              background: '#fff', 
-              padding: '2%', // Minimal padding for aesthetic look
-              borderRadius: '12px', 
-              boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               aspectRatio: '1/1'
             }}
           >
-            <div style={{ width: '90%', height: '90%' }}>
-              <QRCodeCanvas 
-                value={ticket.code || 'VALIDATE-TEST'} 
-                style={{ width: '100%', height: '100%' }}
-                level="H" 
-              />
-            </div>
+            <QRCodeCanvas 
+              value={ticket.code || 'VALIDATE-TEST'} 
+              style={{ width: '100%', height: '100%' }}
+              level="H" 
+              bgColor="transparent"
+            />
+            {/* DEBUG BADGE - SI NO VES ESTO EN ROJO, SIGUES EN LA VERSIÓN VIEJA */}
+            <div style={{ position: 'absolute', top: '-15px', right: 0, fontSize: '10px', color: 'red', fontWeight: 900, background: 'white', padding: '2px 4px', borderRadius: '4px' }}>V4.0 - LIVE</div>
           </div>
         </div>
       ) : (
@@ -115,7 +112,7 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, tem
       
       const canvas = await html2canvas(printRef.current, {
         useCORS: true,
-        scale: 3, // Ultra-high resolution
+        scale: 3, 
         backgroundColor: '#ffffff',
         logging: false,
         width: 600
@@ -130,23 +127,28 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, tem
       
       pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width / 3, canvas.height / 3);
       
-      if (shouldShare && navigator.share) {
+      if (shouldShare && typeof navigator.share !== 'undefined') {
         const blob = pdf.output('blob');
         const file = new File([blob], `Ticket_${ticket.consecutivo}.pdf`, { type: 'application/pdf' });
         
-        try {
-          await navigator.share({
-            files: [file],
-            title: `Boleta #${ticket.consecutivo}`,
-            text: `Aquí tienes tu entrada digital.`
-          });
-        } catch (shareErr) {
-          console.warn("Share failed, falling back to download", shareErr);
-          pdf.save(`Ticket_QR_${ticket.consecutivo}.pdf`);
+        // Check if browser supports sharing files
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: `Boleta #${ticket.consecutivo}`,
+              text: `Aquí tienes tu entrada.`
+            });
+            setDownloading(false);
+            return;
+          } catch (shareErr) {
+            console.warn("Share failed", shareErr);
+          }
         }
-      } else {
-        pdf.save(`Ticket_QR_${ticket.consecutivo}.pdf`);
       }
+      
+      // Fallback: Just download
+      pdf.save(`Ticket_QR_${ticket.consecutivo}.pdf`);
     } catch (err) {
       console.error("PDF Error:", err);
       alert("Error al generar el PDF. Asegúrate de tener conexión.");
