@@ -21,7 +21,11 @@ try {
     serialize: (cb) => {
         try { cb(); } catch(e){}
     },
-    run: () => {},
+    run: (q, p, cb) => {
+      // Find the callback arg
+      const callback = typeof cb === 'function' ? cb : (typeof p === 'function' ? p : null);
+      if(callback) callback(new Error("Dummy DB active: " + err.message));
+    },
     get: (q, p, cb) => { if(cb) cb(null, null); else if(typeof p === 'function') p(null, null); },
     all: (q, p, cb) => { if(cb) cb(null, []); else if(typeof p === 'function') p(null, []); },
     prepare: () => ({ run: () => {}, finalize: () => {} })
