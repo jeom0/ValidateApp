@@ -407,6 +407,35 @@ app.put('/api/templates/:id', (req, res) => {
   });
 });
 
+// Batch Link Templates to an Event
+app.put('/api/templates/batch-link', (req, res) => {
+  const { eventId, templateIds } = req.body; // Array of IDs
+  
+  if (!eventId) return res.status(400).json({ error: 'ID de evento requerido' });
+
+  db.serialize(() => {
+    // 1. Unlink templates currently associated with this event
+    db.run('UPDATE templates SET eventId = NULL WHERE eventId = ?', [eventId]);
+    
+    // 2. Link the new set of templates
+    if (templateIds && Array.isArray(templateIds) && templateIds.length > 0) {
+      const placeholders = templateIds.map(() => '?').join(',');
+      const sql = `UPDATE templates SET eventId = ? WHERE id IN (${placeholders})`;
+      db.run(sql, [eventId, ...templateIds], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        logActivity({ 
+          type: 'template_updated', 
+          message: `🔗 Galería Actualizada: ${this.changes} diseños vinculados al evento`,
+          details: JSON.stringify({ eventId, templateIds })
+        });
+        res.json({ success: true, linkedCount: this.changes });
+      });
+    } else {
+      res.json({ success: true, linkedCount: 0 });
+    }
+  });
+});
+
 // Boletas
 app.get('/api/boletas', (req, res) => {
   db.all('SELECT * FROM boletas', [], (err, rows) => {
