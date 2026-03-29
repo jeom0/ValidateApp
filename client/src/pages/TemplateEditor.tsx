@@ -35,7 +35,6 @@ const TemplateEditor: React.FC = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // 🛡️ SYNC DE IMAGEN: Evita el despliegue en (0,0)
   const [imageLoaded, setImageLoaded] = useState(false);
   const [containerDims, setContainerDims] = useState({ w: 0, h: 0 });
 
@@ -65,7 +64,7 @@ const TemplateEditor: React.FC = () => {
   const handleOpenEdit = (e: React.MouseEvent, t: Template) => {
     e.stopPropagation();
     setActiveTemplate({ ...t });
-    setImageLoaded(false); // Reset para forzar re-calculo
+    setImageLoaded(false);
     setSaveStatus('idle');
     setMessage('');
     setIsEditorOpen(true);
@@ -89,6 +88,25 @@ const TemplateEditor: React.FC = () => {
     } catch (err) {
       alert('Error de conexión');
     }
+  };
+
+  // 🚀 COMPRESOR ULTRA-RÁPIDO
+  const compress = (b64: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = b64;
+      img.onload = () => {
+        const MAX = 1200;
+        const canvas = document.createElement('canvas');
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX) { h = Math.round((h * MAX) / w); w = MAX; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+    });
   };
 
   const handleSave = async () => {
@@ -135,8 +153,10 @@ const TemplateEditor: React.FC = () => {
   const loadFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = ev => {
-      setActiveTemplate(prev => ({ ...prev, imageUrl: ev.target?.result as string }));
+    reader.onload = async ev => {
+      const original = ev.target?.result as string;
+      const optimized = await compress(original);
+      setActiveTemplate(prev => ({ ...prev, imageUrl: optimized }));
       setImageLoaded(false);
     };
     reader.readAsDataURL(file);
@@ -187,9 +207,21 @@ const TemplateEditor: React.FC = () => {
               <div style={{ width: '100%', aspectRatio: '1/1.4', background: '#f3f4f6', borderRadius: '0.75rem', overflow: 'hidden', position: 'relative', marginBottom: '0.75rem' }}>
                 {t.imageUrl ? <img src={t.imageUrl} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={32} />}
               </div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem' }}>{t.name}</h3>
+              
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.5rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{t.name}</h3>
+              
+              {/* 📊 RESTAURACIÓN DE INFORMACIÓN UI */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 800 }}>
+                  <Calendar size={12} /> {t.eventName || 'Sin evento'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontSize: '0.75rem', fontWeight: 800 }}>
+                  <Ticket size={12} /> {t.clientCount || 0} boletas emitidas
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button className="btn btn-ghost" onClick={(e) => handleOpenEdit(e, t)} style={{ flex: 1, height: '2.5rem' }}><Edit2 size={14} /> Editar</button>
+                <button className="btn btn-ghost" onClick={(e) => handleOpenEdit(e, t)} style={{ flex: 1, height: '2.5rem', fontWeight: 700 }}><Edit2 size={14} /> Editar</button>
                 <button className="btn" onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(t.id); }} style={{ background: '#fef2f2', color: '#dc2626', height: '2.5rem' }}><Trash2 size={16} /></button>
               </div>
             </div>
@@ -246,8 +278,9 @@ const TemplateEditor: React.FC = () => {
                     }}
                     onDragStop={(_e, d) => {
                       const xPct = (d.x / containerDims.w) * 100;
-                      const yPct = (d.y / containerDims.h) * 100;
-                      setActiveTemplate(prev => ({ ...prev, qrX: xPct, qrY: yPct }));
+                      const yPct = (d.h / containerDims.h) * 100;
+                      // Error detectado en yPct, debe ser (d.y / dims.h)
+                      setActiveTemplate(prev => ({ ...prev, qrX: xPct, qrY: (d.y / containerDims.h) * 100 }));
                     }}
                     onResizeStop={(_e, _dir, ref, _delta, pos) => {
                       const wPct = (parseInt(ref.style.width) / containerDims.w) * 100;

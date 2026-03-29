@@ -36,10 +36,34 @@ const emptyForm = { name: '', date: '', startTime: '', endTime: '', imageUrl: ''
 /* Drag/drop image uploader */
 const ImageUploader = ({ value, onChange }: { value: string; onChange: (b64: string) => void }) => {
   const [dragging, setDragging] = useState(false);
+  
+  // 🚀 COMPRESOR ULTRA-RÁPIDO (Reduce tamaño de base64)
+  const compress = (b64: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = b64;
+      img.onload = () => {
+        const MAX = 1200;
+        const canvas = document.createElement('canvas');
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX) { h = Math.round((h * MAX) / w); w = MAX; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+    });
+  };
+
   const handleFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = e => onChange(e.target?.result as string);
+    reader.onload = async e => {
+      const original = e.target?.result as string;
+      const optimized = await compress(original);
+      onChange(optimized);
+    };
     reader.readAsDataURL(file);
   };
   return (
