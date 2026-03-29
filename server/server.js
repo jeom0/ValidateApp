@@ -131,11 +131,9 @@ app.put('/api/admin/credentials', (req, res) => {
 
 // Events
 app.get('/api/events', (req, res) => {
-  const query = `
-    SELECT e.*, 
-    (SELECT COUNT(*) FROM boletas b WHERE b.eventId = e.id) as ticketCount
-    FROM events e
-  `;
+  const isCompact = req.query.compact === 'true';
+  const fields = isCompact ? 'id, name, date, startTime, endTime, status, location, (SELECT COUNT(*) FROM boletas WHERE eventId = events.id) as ticketCount' : '*, (SELECT COUNT(*) FROM boletas WHERE eventId = events.id) as ticketCount';
+  const query = `SELECT ${fields} FROM events`;
   db.all(query, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     
@@ -308,9 +306,12 @@ app.delete('/api/clients/:id', (req, res) => {
 
 // Templates
 app.get('/api/templates', (req, res) => {
-  const { eventId } = req.query;
+  const { eventId, compact } = req.query;
+  const isCompact = compact === 'true';
+  const fields = isCompact ? 't.id, t.name, t.qrX, t.qrY, t.qrWidth, t.qrHeight, t.eventId, e.name as eventName' : 't.*, e.name as eventName';
+  
   let query = `
-    SELECT t.*, e.name as eventName, 
+    SELECT ${fields}, 
     (SELECT COUNT(*) FROM boletas b WHERE b.templateId = t.id) as clientCount
     FROM templates t
     LEFT JOIN events e ON t.eventId = e.id

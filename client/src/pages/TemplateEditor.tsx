@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { API_URL } from '../config';
 import { QRCodeSVG } from 'qrcode.react';
-import { Save, Upload, CheckCircle2, AlertCircle, ImageIcon, Move, Plus, Trash2, Edit2, Calendar, Ticket, LayoutTemplate, Loader2 } from 'lucide-react';
+import { Save, Upload, ImageIcon, Move, Plus, Trash2, Edit2, Calendar, Ticket, LayoutTemplate, Loader2 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
 import EmptyState from '../components/EmptyState';
@@ -26,7 +26,7 @@ const defaultTemplate: Template = {
 
 const TemplateEditor: React.FC = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<Template>(defaultTemplate);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -38,17 +38,16 @@ const TemplateEditor: React.FC = () => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [containerDims, setContainerDims] = useState({ w: 0, h: 0 });
 
+  // 🛡️ CARGA ULTRA-RÁPIDA V4.14
   const fetchTemplates = async () => {
-    setLoading(true);
-    try {
-      const r = await fetch(`${API_URL}/api/templates`);
-      const data = await r.json();
-      setTemplates(Array.isArray(data) ? data.filter((t: Template) => t.name && t.name.trim() !== '') : []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    // 1. Cargar metadatos inmediatamente (Compact)
+    const data = await fetch(`${API_URL}/api/templates?compact=true`).then(r => r.json());
+    setTemplates(Array.isArray(data) ? data : []);
+    setLoading(false);
+
+    // 2. Cargar imágenes en segundo plano
+    const fullData = await fetch(`${API_URL}/api/templates`).then(r => r.json());
+    if (Array.isArray(fullData)) setTemplates(fullData);
   };
 
   useEffect(() => { fetchTemplates(); }, []);
@@ -77,20 +76,21 @@ const TemplateEditor: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    setDeleteConfirmId(null);
+    if (!window.confirm('¿Borrar diseño?')) return;
+    
+    // 🚀 ELIMINACIÓN OPTIMISTA
+    const prev = [...templates];
+    setTemplates(templates.filter(t => t.id !== id));
+
     try {
       const res = await fetch(`${API_URL}/api/templates/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setTemplates(prev => prev.filter(t => t.id !== id));
-      } else {
-        alert('Error al eliminar la boleta');
-      }
+      if (!res.ok) throw new Error();
     } catch (err) {
-      alert('Error de conexión');
+      alert('Error al eliminar');
+      setTemplates(prev);
     }
   };
 
-  // 🚀 COMPRESOR ULTRA-RÁPIDO
   const compress = (b64: string): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -111,22 +111,16 @@ const TemplateEditor: React.FC = () => {
 
   const handleSave = async () => {
     if (!activeTemplate.name || !activeTemplate.name.trim()) {
-      alert('Debes escribir un nombre para la boleta');
-      return;
+      alert('Nombre obligatorio'); return;
     }
     if (!activeTemplate.imageUrl) {
-      alert('Debes subir una imagen de fondo');
-      return;
+      alert('Imagen obligatoria'); return;
     }
 
     setLoading(true);
-    setSaveStatus('idle');
-
     const isExisting = templates.some(t => t.id === activeTemplate.id);
     const method = isExisting ? 'PUT' : 'POST';
-    const url = isExisting
-      ? `${API_URL}/api/templates/${activeTemplate.id}`
-      : `${API_URL}/api/templates`;
+    const url = isExisting ? `${API_URL}/api/templates/${activeTemplate.id}` : `${API_URL}/api/templates`;
 
     try {
       const res = await fetch(url, {
@@ -135,16 +129,14 @@ const TemplateEditor: React.FC = () => {
         body: JSON.stringify({ ...activeTemplate, name: activeTemplate.name.trim() })
       });
       if (res.ok) {
-        setSaveStatus('success');
-        setMessage(isExisting ? 'Boleta actualizada' : 'Boleta guardada');
-        await fetchTemplates();
         setIsEditorOpen(false);
+        await fetchTemplates();
       } else {
         const err = await res.json();
-        alert('No se pudo guardar: ' + (err.error || 'Error desconocido'));
+        alert('Error: ' + err.error);
       }
     } catch (e: any) {
-      alert('Error de red: No se pudo conectar al servidor');
+      alert('Error de conexión');
     } finally {
       setLoading(false);
     }
@@ -179,55 +171,50 @@ const TemplateEditor: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.1 }}>
-            Diseños de Boletas
-          </h1>
-          <p style={{ color: '#6b7280', marginTop: '0.375rem', fontWeight: 500 }}>
-            Administra los diseños visuales de tus boletas.
-          </p>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-0.04em' }}>Diseños de Boletas</h1>
+          <p style={{ color: '#6b7280', fontWeight: 500 }}>Administra los diseños visuales.</p>
         </div>
-        <Button onClick={handleOpenNew}>
-          <Plus size={18} /> Nueva Boleta
-        </Button>
+        <Button onClick={handleOpenNew}><Plus size={18} /> Nueva Boleta</Button>
       </div>
 
-      {loading && !isEditorOpen ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#6b7280' }}><Loader2 className="spin" /> Cargando...</div>
-      ) : templates.length === 0 ? (
-        <EmptyState 
-          icon={LayoutTemplate} 
-          title="Sin Diseños" 
-          description="Crea plantillas visuales personalizadas para tus boletas." 
-          action={{ label: "Crear Primer Diseño", onClick: handleOpenNew }}
-        />
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
-          {templates.map(t => (
-            <div key={t.id} className="card" style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ width: '100%', aspectRatio: '1/1.4', background: '#f3f4f6', borderRadius: '0.75rem', overflow: 'hidden', position: 'relative', marginBottom: '0.75rem' }}>
-                {t.imageUrl ? <img src={t.imageUrl} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={32} />}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
+        {loading && templates.length === 0 ? (
+          // 💀 SKELETON UI V4.14
+          Array(4).fill(0).map((_, i) => (
+            <div key={i} className="skeleton" style={{ height: '350px', borderRadius: '1.25rem' }} />
+          ))
+        ) : templates.length === 0 ? (
+          <EmptyState icon={LayoutTemplate} title="Sin Diseños" description="Crea plantillas personalizadas." action={{ label: "Crear Diseño", onClick: handleOpenNew }} />
+        ) : (
+          templates.map(t => (
+            <div key={t.id} className="card" style={{ padding: '0.75rem' }}>
+              <div style={{ width: '100%', aspectRatio: '1/1.4', background: '#f3f4f6', borderRadius: '1rem', overflow: 'hidden', position: 'relative', marginBottom: '1rem' }}>
+                {t.imageUrl ? (
+                  <img src={t.imageUrl} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div className="skeleton" style={{ width: '100%', height: '100%' }} />
+                )}
               </div>
               
-              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.5rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{t.name}</h3>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.5rem' }}>{t.name}</h3>
               
-              {/* 📊 RESTAURACIÓN DE INFORMACIÓN UI */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 800 }}>
-                  <Calendar size={12} /> {t.eventName || 'Sin evento'}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 800 }}>
+                  <Calendar size={14} /> {t.eventName || 'Borrador'}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontSize: '0.75rem', fontWeight: 800 }}>
-                  <Ticket size={12} /> {t.clientCount || 0} boletas emitidas
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontSize: '0.8rem', fontWeight: 800 }}>
+                  <Ticket size={14} /> {t.clientCount || 0} boletas
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button className="btn btn-ghost" onClick={(e) => handleOpenEdit(e, t)} style={{ flex: 1, height: '2.5rem', fontWeight: 700 }}><Edit2 size={14} /> Editar</button>
-                <button className="btn" onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(t.id); }} style={{ background: '#fef2f2', color: '#dc2626', height: '2.5rem' }}><Trash2 size={16} /></button>
+                <button className="btn btn-ghost" onClick={(e) => handleOpenEdit(e, t)} style={{ flex: 1, height: '2.5rem', fontWeight: 800 }}><Edit2 size={14} /> Editar</button>
+                <button className="btn btn-ghost" onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }} style={{ width: '40px', padding: 0, color: '#dc2626', background: '#fef2f2', border: 'none' }}><Trash2 size={16} /></button>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       {/* Editor Modal */}
       <Modal isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)} title={activeTemplate.id && templates.some(t => t.id === activeTemplate.id) ? 'Editar Boleta' : 'Nueva Boleta'} maxWidth={850}>
@@ -242,58 +229,26 @@ const TemplateEditor: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f0f9ff', color: '#0369a1', padding: '0.75rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 600 }}>
-            <Move size={16} /> Arrastra y redimensiona el <b>Código QR</b> para ubicarlo sobre tu diseño.
+            <Move size={16} /> Arrastra y redimensiona el <b>Código QR</b> sobre tu diseño.
           </div>
 
-          <div
-            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            style={{
-              background: dragOver ? '#eff6ff' : '#f9fafb',
-              border: `2px dashed ${activeTemplate.imageUrl ? 'transparent' : '#cbd5e1'}`,
-              borderRadius: '1.25rem', minHeight: activeTemplate.imageUrl ? 'auto' : 350,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: activeTemplate.imageUrl ? '1rem' : 0
-            }}
-          >
+          <div onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop} style={{ background: dragOver ? '#eff6ff' : '#f9fafb', border: `2px dashed ${activeTemplate.imageUrl ? 'transparent' : '#cbd5e1'}`, borderRadius: '1.25rem', minHeight: activeTemplate.imageUrl ? 'auto' : 350, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: activeTemplate.imageUrl ? '1rem' : 0 }}>
             {activeTemplate.imageUrl ? (
               <div ref={containerRef} style={{ position: 'relative', display: 'inline-block', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
-                <img
-                  src={activeTemplate.imageUrl}
-                  alt="Template"
-                  onLoad={onImageLoad}
-                  style={{ maxWidth: '100%', maxHeight: '60vh', display: 'block', borderRadius: '0.5rem', pointerEvents: 'none' }}
-                />
-                
+                <img src={activeTemplate.imageUrl} alt="Template" onLoad={onImageLoad} style={{ maxWidth: '100%', maxHeight: '60vh', display: 'block', borderRadius: '0.5rem', pointerEvents: 'none' }} />
                 {imageLoaded && (
                   <Rnd
                     lockAspectRatio={true}
-                    size={{ 
-                      width: (activeTemplate.qrWidth / 100) * containerDims.w, 
-                      height: (activeTemplate.qrHeight / 100) * containerDims.h 
-                    }}
-                    position={{ 
-                      x: (activeTemplate.qrX / 100) * containerDims.w, 
-                      y: (activeTemplate.qrY / 100) * containerDims.h 
-                    }}
-                    onDragStop={(_e, d) => {
-                      const xPct = (d.x / containerDims.w) * 100;
-                      const yPct = (d.h / containerDims.h) * 100;
-                      // Error detectado en yPct, debe ser (d.y / dims.h)
-                      setActiveTemplate(prev => ({ ...prev, qrX: xPct, qrY: (d.y / containerDims.h) * 100 }));
-                    }}
+                    size={{ width: (activeTemplate.qrWidth / 100) * containerDims.w, height: (activeTemplate.qrHeight / 100) * containerDims.h }}
+                    position={{ x: (activeTemplate.qrX / 100) * containerDims.w, y: (activeTemplate.qrY / 100) * containerDims.h }}
+                    onDragStop={(_e, d) => setActiveTemplate(prev => ({ ...prev, qrX: (d.x / containerDims.w) * 100, qrY: (d.y / containerDims.h) * 100 }))}
                     onResizeStop={(_e, _dir, ref, _delta, pos) => {
                       const wPct = (parseInt(ref.style.width) / containerDims.w) * 100;
                       const hPct = (parseInt(ref.style.height) / containerDims.h) * 100;
-                      const xPct = (pos.x / containerDims.w) * 100;
-                      const yPct = (pos.y / containerDims.h) * 100;
-                      setActiveTemplate(prev => ({ ...prev, qrWidth: wPct, qrHeight: hPct, qrX: xPct, qrY: yPct }));
+                      setActiveTemplate(prev => ({ ...prev, qrWidth: wPct, qrHeight: hPct, qrX: (pos.x / containerDims.w) * 100, qrY: (pos.y / containerDims.h) * 100 }));
                     }}
                     bounds="parent"
-                    style={{
-                      border: '3px solid #16a34a', background: '#fff', borderRadius: '8px', zIndex: 10,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4%', cursor: 'move'
-                    }}
+                    style={{ border: '3px solid #16a34a', background: '#fff', borderRadius: '8px', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4%', cursor: 'move' }}
                   >
                     <QRCodeSVG value="PREVIEW" style={{ width: '100%', height: '100%' }} />
                   </Rnd>
@@ -313,7 +268,10 @@ const TemplateEditor: React.FC = () => {
         </div>
       </Modal>
 
-      <style>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        .skeleton { background: #f1f5f9; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+      `}</style>
     </div>
   );
 };
