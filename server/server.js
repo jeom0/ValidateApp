@@ -49,6 +49,16 @@ app.post('/api/login', (req, res) => {
   });
 });
 
+// EMERGENCY ROUTE TO FORCE SEED
+app.get('/api/force-admin', (req, res) => {
+  db.run("CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT UNIQUE, password TEXT)", () => {
+    db.run("INSERT OR REPLACE INTO users (id, username, password) VALUES ('1', 'admin1@admin.com', 'admin@qwerty')", (err) => {
+      if (err) res.send('<h1 style="color:red; font-family:sans-serif;">Error inyectando: ' + err.message + '</h1>');
+      else res.send('<h1 style="color:green; font-family:sans-serif;">ADMINISTRADOR INYECTADO AL 100% CORRECTAMENTE</h1><br><a href="/">Volver al Login</a>');
+    });
+  });
+});
+
 // Recent activity for dashboard
 app.get('/api/activity', (req, res) => {
   const query = `
