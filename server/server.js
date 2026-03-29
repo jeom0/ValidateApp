@@ -408,7 +408,7 @@ app.put('/api/templates/:id', (req, res) => {
 });
 
 // Batch Link Templates to an Event
-app.put('/api/templates/batch-link', (req, res) => {
+app.post('/api/templates/batch-link', (req, res) => {
   const { eventId, templateIds } = req.body; // Array of IDs
   
   if (!eventId) return res.status(400).json({ error: 'ID de evento requerido' });

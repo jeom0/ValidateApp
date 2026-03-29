@@ -168,6 +168,9 @@ const Events: React.FC = () => {
   const [genQty, setGenQty] = useState(1);
   const [genTemplateId, setGenTemplateId] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [allClients, setAllClients] = useState<any[]>([]);
+  const [filteredClients, setFilteredClients] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // 🛡️ CARGA ULTRA-RÁPIDA V4.14
   const fetchEvents = async () => {
@@ -251,8 +254,14 @@ const Events: React.FC = () => {
       const res = await fetch(`${API_URL}/api/templates`);
       const data = await res.json();
       setAllTemplates(Array.isArray(data) ? data : []);
+
+      // Cargar clientes para autocompletado V4.16
+      const clientsRes = await fetch(`${API_URL}/api/clients`);
+      const clientsData = await clientsRes.json();
+      setAllClients(Array.isArray(clientsData) ? clientsData : []);
     } catch { 
       setAllTemplates([]); 
+      setAllClients([]);
     }
   };
   
@@ -279,7 +288,7 @@ const Events: React.FC = () => {
     setLinking(true);
     try {
       const res = await fetch(`${API_URL}/api/templates/batch-link`, {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           eventId: boletaEventContext.id,
@@ -448,9 +457,54 @@ const Events: React.FC = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
+              <div style={{ position: 'relative' }}>
                 <label className="input-label">Nombre del Invitado</label>
-                <input className="input" placeholder="Nombre completo" value={genName} onChange={e => setGenName(e.target.value)} required />
+                <input 
+                  className="input" 
+                  placeholder="Escribe para buscar..." 
+                  value={genName} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    setGenName(val);
+                    if (val.length > 1) {
+                      const matches = allClients.filter(c => c.name.toLowerCase().includes(val.toLowerCase()));
+                      setFilteredClients(matches.slice(0, 5));
+                      setShowSuggestions(true);
+                    } else {
+                      setShowSuggestions(false);
+                    }
+                  }} 
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  required 
+                />
+                
+                {/* AUTOCOMPLETE SUGGESTIONS */}
+                {showSuggestions && filteredClients.length > 0 && (
+                  <div style={{ 
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    background: '#fff', border: '1px solid #e2e8f0', borderRadius: '0.75rem', 
+                    marginTop: '0.5rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                    overflow: 'hidden'
+                  }}>
+                    {filteredClients.map(c => (
+                      <div 
+                        key={c.id}
+                        style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}
+                        onMouseDown={() => {
+                          setGenName(c.name);
+                          setGenCedula(c.cedula || '');
+                          setGenEmail(c.email || '');
+                          setShowSuggestions(false);
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{c.name}</div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{c.cedula || 'Sin CC'} • {c.email || 'Sin correo'}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="input-label">Identificación (Cédula)</label>
