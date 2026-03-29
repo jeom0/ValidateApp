@@ -2,25 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config';
 import { Users, Ticket, CheckCircle2, Calendar, AlertCircle, Clock, PlusCircle, XCircle } from 'lucide-react';
 
-const StatCard = ({ icon, label, value, color = '#000' }: { icon: React.ReactNode; label: string; value: number; color?: string }) => (
+const StatCard = ({ icon, label, value, color = '#000', loading = false }: { icon: React.ReactNode; label: string; value: number; color?: string; loading?: boolean }) => (
   <div className="card card-hover" style={{ cursor: 'default' }}>
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div style={{
         width: 48, height: 48, borderRadius: '0.875rem',
-        background: color === '#000' ? '#000' : `${color}18`,
-        color: color === '#000' ? '#fff' : color,
+        background: loading ? '#f3f4f6' : (color === '#000' ? '#000' : `${color}18`),
+        color: loading ? 'transparent' : (color === '#000' ? '#fff' : color),
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: color === '#000' ? '0 8px 18px rgba(0,0,0,0.18)' : `0 4px 12px ${color}28`
-      }}>
-        {icon}
+        boxShadow: loading ? 'none' : (color === '#000' ? '0 8px 18px rgba(0,0,0,0.18)' : `0 4px 12px ${color}28`)
+      }} className={loading ? 'skeleton' : ''}>
+        {!loading && icon}
       </div>
       <div>
         <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '0.25rem' }}>
           {label}
         </p>
-        <h3 style={{ fontSize: '2.75rem', fontWeight: 900, letterSpacing: '-0.04em', color, lineHeight: 1 }}>
-          {value}
-        </h3>
+        {loading ? (
+          <div className="skeleton" style={{ height: '2.75rem', width: '60%', borderRadius: '0.5rem' }} />
+        ) : (
+          <h3 style={{ fontSize: '2.75rem', fontWeight: 900, letterSpacing: '-0.04em', color, lineHeight: 1 }}>
+            {value}
+          </h3>
+        )}
       </div>
     </div>
   </div>
@@ -85,10 +89,10 @@ const Dashboard: React.FC = () => {
 
       {/* Stats */}
       <div className="stats-grid">
-        <StatCard icon={<Users size={22} />} label="Clientes Registrados" value={stats.clients} />
-        <StatCard icon={<Ticket size={22} />} label="Boletas Emitidas" value={stats.boletas} color="#2563eb" />
-        <StatCard icon={<CheckCircle2 size={22} />} label="Escaneos Válidos" value={stats.validaciones} color="#16a34a" />
-        <StatCard icon={<Calendar size={22} />} label="Eventos Activos" value={stats.eventos} color="#7c3aed" />
+        <StatCard icon={<Users size={22} />} label="Clientes Registrados" value={stats.clients} loading={loading} />
+        <StatCard icon={<Ticket size={22} />} label="Boletas Emitidas" value={stats.boletas} color="#2563eb" loading={loading} />
+        <StatCard icon={<CheckCircle2 size={22} />} label="Escaneos Válidos" value={stats.validaciones} color="#16a34a" loading={loading} />
+        <StatCard icon={<Calendar size={22} />} label="Eventos Activos" value={stats.eventos} color="#7c3aed" loading={loading} />
       </div>
 
       {/* Activity */}
@@ -98,7 +102,17 @@ const Dashboard: React.FC = () => {
         </h2>
         
         {loading ? (
-           <div className="card" style={{ padding: '4rem', textAlign: 'center', color: '#6b7280' }}>Cargando actividad...</div>
+           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+             {[1,2,3,4,5].map(i => (
+               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem', borderBottom: i === 5 ? 'none' : '1px solid #f3f4f6' }}>
+                 <div style={{ width: 40, height: 40, borderRadius: '50%' }} className="skeleton" />
+                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div className="skeleton" style={{ height: '0.8rem', width: '40%' }} />
+                    <div className="skeleton" style={{ height: '0.6rem', width: '20%' }} />
+                 </div>
+               </div>
+             ))}
+           </div>
         ) : activities.length > 0 ? (
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ borderBottom: '1px solid #f3f4f6' }}>

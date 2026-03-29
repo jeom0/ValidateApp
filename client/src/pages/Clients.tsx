@@ -8,10 +8,8 @@ import EmptyState from '../components/EmptyState';
 import { Users as UsersIcon } from 'lucide-react';
 
 const Clients: React.FC = () => {
-  const [clients, setClients] = useState<any[]>([]);
-  const [search, setSearch] = useState('');
-  const [events, setEvents] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Modals
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -47,11 +45,16 @@ const Clients: React.FC = () => {
   const [addTemplateId, setAddTemplateId] = useState('');
 
   const fetchClients = async () => {
+    setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/clients`);
       const data = await res.json();
       setClients(Array.isArray(data) ? data : []);
-    } catch { setClients([]); }
+    } catch { 
+      setClients([]); 
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -160,7 +163,40 @@ const Clients: React.FC = () => {
         </button>
       </div>
 
-      {clients.length === 0 ? (
+      {loading ? (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="table-wrap">
+            <table style={{ minWidth: '700px', borderSpacing: 0 }}>
+              <thead>
+                <tr style={{ background: '#fff' }}>
+                  <th style={{ padding: '1rem 1.5rem', width: '40%' }}>Cliente / Datos</th>
+                  <th style={{ padding: '1rem', width: '25%' }}>Cédula</th>
+                  <th style={{ padding: '1rem', width: '15%' }}>Boletas</th>
+                  <th style={{ padding: '1rem 1.5rem', textAlign: 'right', width: '20%' }}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[1,2,3,4,5,6].map(i => (
+                  <tr key={i} style={{ borderBottom: '1px solid #f1f1f1' }}>
+                    <td style={{ padding: '0.75rem 1.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: '10px' }} className="skeleton" />
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          <div className="skeleton" style={{ height: '0.9rem', width: '60%' }} />
+                          <div className="skeleton" style={{ height: '0.7rem', width: '40%' }} />
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}><div className="skeleton" style={{ height: '1rem', width: '80%' }} /></td>
+                    <td style={{ padding: '0.75rem 1rem' }}><div className="skeleton" style={{ height: '1.5rem', width: '60px', borderRadius: '6px' }} /></td>
+                    <td style={{ padding: '0.75rem 1.5rem', textAlign: 'right' }}><div className="skeleton" style={{ height: '2.25rem', width: '100px', marginLeft: 'auto', borderRadius: '0.75rem' }} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : clients.length === 0 ? (
         <EmptyState 
           icon={UsersIcon}
           title="Sin clientes registrados"

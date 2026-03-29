@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, Plus, Edit2, Trash2, LayoutTemplate, MoreVertical, Ticket, Loader2 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
@@ -72,6 +73,7 @@ const ImageUploader = ({ value, onChange }: { value: string; onChange: (b64: str
 };
 
 const Events: React.FC = () => {
+  const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -221,7 +223,7 @@ const Events: React.FC = () => {
                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                   <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => handleEdit(event)}><Edit2 size={14} /> Editar</button>
                   <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => openDesign(event)}><LayoutTemplate size={14} /> Diseño</button>
-                  <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => openEventBoletas(event)}><Users size={14} /> Tickets</button>
+                  <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => openEventBoletas(event)}><Users size={14} /> Generar Boletos</button>
                   <button className="btn btn-ghost" style={{ width: '40px', padding: 0, color: '#dc2626', background: '#fef2f2', border: 'none' }} onClick={() => handleDelete(event.id)}><Trash2 size={16} /></button>
                 </div>
               </div>
@@ -259,7 +261,7 @@ const Events: React.FC = () => {
               {(boletaEventContext as any)?.ticketCount || 0}
             </h2>
           </div>
-          <button className="btn btn-primary" style={{ width: '100%', height: '4rem', borderRadius: '1.25rem', fontSize: '1.1rem', fontWeight: 800, gap: '0.75rem' }} onClick={() => { setIsEventBoletasOpen(false); if (boletaEventContext) openBoleta(boletaEventContext); }}><Plus size={20} /> Agregar Boletas</button>
+          <button className="btn btn-primary" style={{ width: '100%', height: '4rem', borderRadius: '1.25rem', fontSize: '1.1rem', fontWeight: 800, gap: '0.75rem' }} onClick={() => { setIsEventBoletasOpen(false); if (boletaEventContext) openBoleta(boletaEventContext); }}><Plus size={20} /> Ver Boletos</button>
         </div>
       </Modal>
 

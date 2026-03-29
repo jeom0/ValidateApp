@@ -17,7 +17,7 @@ export const Layout: React.FC = () => {
     <div className="app-layout">
       {/* Mobile Header */}
       <div className="mobile-header">
-        <span className="mobile-header-logo">JEOM <span style={{ color: '#6b7280', fontWeight: 700 }}>PRO</span></span>
+        <span className="mobile-header-logo">ValidateApp <span style={{ color: '#6b7280', fontWeight: 700 }}>PRO</span></span>
         <button className="hamburger-btn" onClick={() => setOpen(v => !v)}>
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -29,7 +29,7 @@ export const Layout: React.FC = () => {
       {/* Sidebar */}
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="sidebar-logo">
-          JEOM <span style={{ color: '#6b7280', fontWeight: 700 }}>PRO</span>
+          ValidateApp <span style={{ color: '#6b7280', fontWeight: 700 }}>PRO</span>
         </div>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>

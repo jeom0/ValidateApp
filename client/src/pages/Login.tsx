@@ -107,7 +107,7 @@ const Login: React.FC = () => {
             Bienvenido
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', fontWeight: 500, marginBottom: '2.5rem' }}>
-            Acceso a su plataforma <span style={{ color: '#fff', fontWeight: 700 }}>JEOM PRO</span>
+            Acceso a su plataforma <span style={{ color: '#fff', fontWeight: 700 }}>ValidateApp PRO</span>
           </p>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -185,7 +185,7 @@ const Login: React.FC = () => {
             </button>
           </form>
 
-            Copyright &copy; 2026 · JEOM
+            Copyright &copy; 2026 · Antigravity Systems
         </div>
       </div>
       <style>{`

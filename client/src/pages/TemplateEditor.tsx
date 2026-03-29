@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
+import { useSearchParams } from 'react-router-dom';
 import { API_URL } from '../config';
 import { QRCodeSVG } from 'qrcode.react';
 import { Save, Upload, ImageIcon, Move, Plus, Trash2, Edit2, Calendar, Ticket, LayoutTemplate, Loader2 } from 'lucide-react';
@@ -28,6 +29,8 @@ const TemplateEditor: React.FC = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+  const eventIdParam = searchParams.get('eventId');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<Template>(defaultTemplate);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -52,7 +55,15 @@ const TemplateEditor: React.FC = () => {
 
     // 3. Cargar eventos para el selector
     const evs = await fetch(`${API_URL}/api/events?compact=true`).then(r => r.json());
-    if (Array.isArray(evs)) setEvents(evs);
+    if (Array.isArray(evs)) {
+      setEvents(evs);
+      
+      // AUTO-ABRIR SI VIENE DE UN EVENTO SIN DISEÑO
+      if (eventIdParam && Array.isArray(fullData) && !fullData.some((t: any) => t.eventId === eventIdParam)) {
+        setActiveTemplate({ ...defaultTemplate, id: crypto.randomUUID(), eventId: eventIdParam });
+        setIsEditorOpen(true);
+      }
+    }
   };
 
   useEffect(() => { fetchTemplates(); }, []);
