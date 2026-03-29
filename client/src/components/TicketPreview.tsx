@@ -74,7 +74,8 @@ const TicketContent: React.FC<{
           >
             <QRCodeSVG 
               value={ticket.code || 'VALIDATE-TEST'} 
-              style={{ width: '100%', height: '100%' }}
+              width="100%"
+              height="100%"
               level="H" 
               bgColor="#ffffff"
               fgColor="#000000"
