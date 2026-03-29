@@ -1,5 +1,5 @@
 import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { Download, Share2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -72,14 +72,13 @@ const TicketContent: React.FC<{
               boxShadow: isPrint ? 'none' : '0 10px 30px rgba(0,0,0,0.1)'
             }}
           >
-            <QRCodeSVG 
+            <QRCodeCanvas 
               value={ticket.code || 'VALIDATE-TEST'} 
-              width="100%"
-              height="100%"
+              size={512}
+              style={{ width: '100%', height: '100%', display: 'block' }}
               level="H" 
               bgColor="#ffffff"
               fgColor="#000000"
-              includeMargin={false}
             />
           </div>
         </div>
@@ -97,7 +96,7 @@ const TicketContent: React.FC<{
           aspectRatio: '1 / 1.5'
         }}>
           <div style={{ background: '#fff', padding: '1rem', borderRadius: '1.25rem' }}>
-            <QRCodeSVG value={ticket.code} size={180} level="H" />
+            <QRCodeCanvas value={ticket.code || 'VALIDATE-TEST'} size={256} level="H" />
           </div>
           <div>
             <p style={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TICKET DIGITAL</p>
