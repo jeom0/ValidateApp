@@ -1,52 +1,154 @@
+/**
+ * database.js — sql.js wrapper with sqlite3-compatible callback API
+ * Uses WebAssembly SQLite (sql.js) — no native binaries, works on any server.
+ */
+
 const path = require('path');
-let sqlite3;
-let db;
-try {
-  sqlite3 = require('sqlite3').verbose();
-  const dbPath = path.resolve(__dirname, 'data.db');
-  console.log('Database path:', dbPath);
-  db = new sqlite3.Database(dbPath, (err) => {
-    if (err) console.error('Database connection error:', err.message);
-    else console.log('Connected to SQLite database');
-  });
-} catch (err) {
-  console.warn('\n======================================================');
-  console.warn('⚠️  SQLite3 binary missing - Running in Dummy Mode ⚠️');
-  console.warn('Hostinger auto-deploy blocked the native module download.');
-  console.warn('Please run "npm install" via Hostinger Terminal to fix.');
-  console.warn('======================================================\n');
-  
-  // Create a dummy db object that won't crash the server.js initialization
-  db = {
-    serialize: (cb) => {
-        try { cb(); } catch(e){}
-    },
-    run: (q, p, cb) => {
-      // Find the callback arg
-      const callback = typeof cb === 'function' ? cb : (typeof p === 'function' ? p : null);
-      if(callback) callback(new Error("Dummy DB active: " + err.message));
-    },
-    get: (q, p, cb) => { if(cb) cb(null, null); else if(typeof p === 'function') p(null, null); },
-    all: (q, p, cb) => { if(cb) cb(null, []); else if(typeof p === 'function') p(null, []); },
-    prepare: () => ({ run: () => {}, finalize: () => {} })
-  };
+const fs = require('fs');
+
+const DB_PATH = path.resolve(__dirname, 'data.db');
+
+// ─── sql.js shim that mimics the sqlite3 callback API ─────────────────────────
+// We load sql.js synchronously, build the in-memory DB from file (if it exists),
+// and expose run / get / all / prepare / serialize that match the sqlite3 API.
+
+let sqlJs;
+let sqlDb; // the sql.js Database instance
+
+// Persist the in-memory DB back to disk after every write
+function persist() {
+  try {
+    const data = sqlDb.export();
+    fs.writeFileSync(DB_PATH, Buffer.from(data));
+  } catch (e) {
+    console.error('persist error:', e.message);
+  }
 }
 
+function initDb() {
+  sqlJs = require('sql.js');
+  // sql.js 1.x exports a factory function
+  const SQL = sqlJs({ locateFile: () => path.join(__dirname, 'node_modules/sql.js/dist/sql-wasm.wasm') });
+  // SQL is actually a promise in some versions; handle both
+  if (SQL && typeof SQL.then === 'function') {
+    return SQL;
+  }
+  // Synchronous mode (older versions)
+  return Promise.resolve(SQL);
+}
+
+// Synchronous-style wrapper around the async sql.js init
+// We'll wire everything up after init resolves
+
+let _ready = false;
+let _queue = [];
+
+function enqueue(fn) {
+  if (_ready) fn();
+  else _queue.push(fn);
+}
+
+// The public db object — same interface as sqlite3
+const db = {
+  serialize: (cb) => { enqueue(() => { try { cb(); } catch (e) {} }); },
+  run: (sql, params, cb) => {
+    if (typeof params === 'function') { cb = params; params = []; }
+    params = params || [];
+    enqueue(() => {
+      try {
+        sqlDb.run(sql, params);
+        persist();
+        if (cb) cb.call({ changes: sqlDb.getRowsModified() }, null);
+      } catch (e) {
+        if (cb) cb.call({ changes: 0 }, e);
+        else console.error('db.run error:', e.message, '| SQL:', sql);
+      }
+    });
+  },
+  get: (sql, params, cb) => {
+    if (typeof params === 'function') { cb = params; params = []; }
+    params = params || [];
+    enqueue(() => {
+      try {
+        const stmt = sqlDb.prepare(sql);
+        stmt.bind(params);
+        const row = stmt.step() ? stmt.getAsObject() : null;
+        stmt.free();
+        if (cb) cb(null, row);
+      } catch (e) {
+        if (cb) cb(e, null);
+        else console.error('db.get error:', e.message);
+      }
+    });
+  },
+  all: (sql, params, cb) => {
+    if (typeof params === 'function') { cb = params; params = []; }
+    params = params || [];
+    enqueue(() => {
+      try {
+        const stmt = sqlDb.prepare(sql);
+        stmt.bind(params);
+        const rows = [];
+        while (stmt.step()) rows.push(stmt.getAsObject());
+        stmt.free();
+        if (cb) cb(null, rows);
+      } catch (e) {
+        if (cb) cb(e, []);
+        else console.error('db.all error:', e.message);
+      }
+    });
+  },
+  prepare: (sql) => {
+    // Returns a statement-like object compatible with the usage in server.js
+    const boundParams = [];
+    return {
+      run: (params) => {
+        enqueue(() => {
+          try { sqlDb.run(sql, params); persist(); }
+          catch (e) { console.error('stmt.run error:', e.message); }
+        });
+      },
+      finalize: () => {} // no-op
+    };
+  }
+};
+
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
+initDb().then((SQL) => {
+  // Load from file if exists, else create new DB
+  if (fs.existsSync(DB_PATH)) {
+    const fileBuffer = fs.readFileSync(DB_PATH);
+    sqlDb = new SQL.Database(fileBuffer);
+    console.log('Loaded existing SQLite DB from', DB_PATH);
+  } else {
+    sqlDb = new SQL.Database();
+    console.log('Created new SQLite DB at', DB_PATH);
+  }
+
+  _ready = true;
+  _queue.forEach(fn => fn());
+  _queue = [];
+}).catch((err) => {
+  console.error('FATAL: Could not initialize sql.js:', err.message);
+});
+
+// ─── Schema & seed ────────────────────────────────────────────────────────────
 db.serialize(() => {
   console.log('Initializing database tables...');
+
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE,
     password TEXT
   )`);
-  
+
   db.run(`CREATE TABLE IF NOT EXISTS clients (
     id TEXT PRIMARY KEY,
     name TEXT,
     email TEXT,
     cedula TEXT
   )`);
-  
+
   db.run(`CREATE TABLE IF NOT EXISTS templates (
     id TEXT PRIMARY KEY,
     name TEXT,
@@ -56,8 +158,8 @@ db.serialize(() => {
     qrWidth REAL,
     qrHeight REAL,
     eventId TEXT
-  )`, (err) => { if (err) console.error("Error creating templates:", err.message); });
-  
+  )`);
+
   db.run(`CREATE TABLE IF NOT EXISTS events (
     id TEXT PRIMARY KEY,
     name TEXT,
@@ -67,7 +169,7 @@ db.serialize(() => {
     status TEXT DEFAULT 'pendiente',
     imageUrl TEXT,
     location TEXT
-  )`, (err) => { if (err) console.error("Error creating events:", err.message); });
+  )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS boletas (
     id TEXT PRIMARY KEY,
@@ -79,21 +181,13 @@ db.serialize(() => {
     templateId TEXT,
     eventId TEXT
   )`);
-  
-  // Try to add missing columns if upgrading DB
-  db.run(`ALTER TABLE boletas ADD COLUMN consecutivo INTEGER`, (err) => {});
-  db.run(`ALTER TABLE boletas ADD COLUMN fecha_uso TEXT`, (err) => {});
-  db.run(`ALTER TABLE boletas ADD COLUMN eventId TEXT`, (err) => {});
-  db.run(`ALTER TABLE clients ADD COLUMN cedula TEXT`, (err) => {});
-  db.run(`ALTER TABLE templates ADD COLUMN eventId TEXT`, (err) => {});
-  db.run(`ALTER TABLE events ADD COLUMN location TEXT`, (err) => {});
 
   db.run(`CREATE TABLE IF NOT EXISTS scan_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ticketId TEXT,
     resultado TEXT,
     fecha_hora TEXT
-  )`, (err) => { if (err) console.error("Error creating scan_logs:", err.message); });
+  )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS activity_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,20 +198,31 @@ db.serialize(() => {
     consecutivo INTEGER,
     clientName TEXT,
     eventName TEXT
-  )`, (err) => { 
-    if (err) console.error("Error creating activity_logs:", err.message); 
-    else console.log("Table activity_logs ready");
-  });
-  // Seed data if empty (moved inside serialize to ensure table exists first)
+  )`);
+
+  // Safe migrations (ignore errors if column exists)
+  db.run(`ALTER TABLE boletas ADD COLUMN consecutivo INTEGER`);
+  db.run(`ALTER TABLE boletas ADD COLUMN fecha_uso TEXT`);
+  db.run(`ALTER TABLE boletas ADD COLUMN eventId TEXT`);
+  db.run(`ALTER TABLE clients ADD COLUMN cedula TEXT`);
+  db.run(`ALTER TABLE templates ADD COLUMN eventId TEXT`);
+  db.run(`ALTER TABLE events ADD COLUMN location TEXT`);
+
+  // Seed admin user
   db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
-    if (row && row.count === 0) {
-      db.run("INSERT INTO users (id, username, password) VALUES ('1', 'admin1@admin.com', 'admin@qwerty')");
-      console.log('First-time admin initialized');
-    } else if (err) {
-      console.error('Error seeding admin user:', err.message);
+    if (err || (row && row.count === 0) || !row) {
+      db.run(
+        "INSERT OR REPLACE INTO users (id, username, password) VALUES ('1', 'admin1@admin.com', 'admin@qwerty')",
+        [],
+        (e) => {
+          if (e) console.error('Seed error:', e.message);
+          else console.log('Admin user seeded: admin1@admin.com / admin@qwerty');
+        }
+      );
     } else {
-      // Also perform a "force" update for ID 1 to ensure existing DBs get the new credentials
-      db.run("UPDATE users SET username = ?, password = ? WHERE id = '1'", ['admin1@admin.com', 'admin@qwerty']);
+      // Force-update existing admin credentials
+      db.run("UPDATE users SET username = 'admin1@admin.com', password = 'admin@qwerty' WHERE id = '1'");
+      console.log('Admin credentials updated.');
     }
   });
 });
