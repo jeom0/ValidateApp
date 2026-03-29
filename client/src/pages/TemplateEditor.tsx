@@ -248,9 +248,9 @@ const TemplateEditor: React.FC = () => {
                       setActiveTemplate(prev => ({ ...prev, qrWidth: wPct, qrHeight: hPct, qrX: (pos.x / containerDims.w) * 100, qrY: (pos.y / containerDims.h) * 100 }));
                     }}
                     bounds="parent"
-                    style={{ border: '3px solid #16a34a', background: '#fff', borderRadius: '8px', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', cursor: 'move' }}
+                    style={{ border: '3px solid #16a34a', background: '#fff', borderRadius: '8px', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0px', cursor: 'move', overflow: 'hidden' }}
                   >
-                    <QRCodeSVG value="PREVIEW" style={{ width: '100%', height: '100%' }} />
+                    <QRCodeSVG value="PREVIEW" style={{ width: '100%', height: '100%', display: 'block' }} marginSize={0} />
                   </Rnd>
                 )}
               </div>
