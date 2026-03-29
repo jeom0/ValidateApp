@@ -117,9 +117,21 @@ const db = {
 initDb().then((SQL) => {
   // Load from file if exists, else create new DB
   if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    sqlDb = new SQL.Database(fileBuffer);
-    console.log('Loaded existing SQLite DB from', DB_PATH);
+    try {
+      const fileBuffer = fs.readFileSync(DB_PATH);
+      if (fileBuffer.length > 0) {
+        // sql.js Database constructor expects a Uint8Array
+        sqlDb = new SQL.Database(new Uint8Array(fileBuffer));
+        console.log('Loaded existing SQLite DB from', DB_PATH, `(${fileBuffer.length} bytes)`);
+      } else {
+        sqlDb = new SQL.Database();
+        console.log('DB file was empty, created new SQLite DB');
+      }
+    } catch (err) {
+      console.error('ERROR loading database file:', err.message);
+      sqlDb = new SQL.Database();
+      console.log('Created NEW in-memory database due to load error.');
+    }
   } else {
     sqlDb = new SQL.Database();
     console.log('Created new SQLite DB at', DB_PATH);
