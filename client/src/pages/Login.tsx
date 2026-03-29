@@ -98,7 +98,7 @@ const Login: React.FC = () => {
           textTransform: 'uppercase',
           borderBottom: '2px solid rgba(255,255,255,0.1)'
         }}>
-          🛡️ V4.12 - MODO ULTRA VELOZ
+          🛡️ V4.13 - CONTEOS DE EVENTO
         </div>
         <div style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div style={{

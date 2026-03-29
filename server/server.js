@@ -131,19 +131,21 @@ app.put('/api/admin/credentials', (req, res) => {
 
 // Events
 app.get('/api/events', (req, res) => {
-  db.all('SELECT * FROM events', [], (err, rows) => {
+  const query = `
+    SELECT e.*, 
+    (SELECT COUNT(*) FROM boletas b WHERE b.eventId = e.id) as ticketCount
+    FROM events e
+  `;
+  db.all(query, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     
-    // Auto-update status based on time
     const now = new Date();
     const updatedRows = rows.map(event => {
       const eventDate = new Date(`${event.date}T${event.startTime}`);
       const eventEnd = new Date(`${event.date}T${event.endTime}`);
-      
       let status = 'pendiente';
       if (now > eventEnd) status = 'terminado';
       else if (now >= eventDate) status = 'en curso';
-      
       return { ...event, status };
     });
     res.json(updatedRows);

@@ -178,15 +178,9 @@ const Events: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const openEventBoletas = async (event: Event) => {
+  const openEventBoletas = (event: Event) => {
     setBoletaEventContext(event);
     setIsEventBoletasOpen(true);
-    setEventBoletasLoading(true);
-    try {
-      const r = await fetch(`${API_URL}/api/events/${event.id}/boletas`);
-      const d = await r.json();
-      setEventBoletasData(Array.isArray(d) ? d : []);
-    } finally { setEventBoletasLoading(false); }
   };
 
   const handleDeleteBoleta = async (boletaId: string) => {
@@ -435,28 +429,21 @@ const Events: React.FC = () => {
       </Modal>
 
       {/* BOLETAS Modal */}
-      <Modal isOpen={isEventBoletasOpen} onClose={() => setIsEventBoletasOpen(false)} title={`Boletas — ${boletaEventContext?.name || ''}`} maxWidth={660}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <p style={{ color: '#6b7280', fontWeight: 600 }}>{eventBoletasData.length} boletas</p>
-            <button className="btn btn-primary" style={{ borderRadius: '0.75rem', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => { setIsEventBoletasOpen(false); if (boletaEventContext) openBoleta(boletaEventContext); }}><Plus size={14} /> Agregar</button>
+      <Modal isOpen={isEventBoletasOpen} onClose={() => setIsEventBoletasOpen(false)} title={`Boletas — ${boletaEventContext?.name || ''}`} maxWidth={460}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', padding: '1rem', alignItems: 'center', textAlign: 'center' }}>
+          <div style={{ background: '#f8fafc', padding: '2rem', borderRadius: '1.5rem', width: '100%', border: '2px solid #f1f5f9' }}>
+            <p style={{ margin: 0, color: '#64748b', fontWeight: 700, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Boletas Creadas</p>
+            <h2 style={{ margin: '0.5rem 0', fontSize: '3.5rem', fontWeight: 900, color: '#0f172a' }}>
+              {(boletaEventContext as any)?.ticketCount || 0}
+            </h2>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto' }}>
-            {eventBoletasData.map(b => (
-              <div key={b.id} style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', padding: '0.75rem', borderRadius: '0.75rem', gap: '1rem' }}>
-                <div style={{ background: '#fff', padding: '0.2rem', borderRadius: '0.3rem', border: '1px solid #eee' }}><QRCodeSVG value={b.code} size={32} /></div>
-                <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setZoomedBoleta(b)}>
-                  <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem' }}>{b.client?.name} #{b.consecutivo}</p>
-                </div>
-                <button 
-                  style={{ background: '#fef2f2', color: '#dc2626', border: 'none', padding: '0.4rem', borderRadius: '0.4rem', cursor: 'pointer' }}
-                  onClick={() => openDeleteDialog('Eliminar Boleta', `¿Borrar la #${b.consecutivo}?`, () => handleDeleteBoleta(b.id))}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
+          <button 
+            className="btn btn-primary" 
+            style={{ width: '100%', height: '4rem', borderRadius: '1.25rem', fontSize: '1.1rem', fontWeight: 800, gap: '0.75rem' }} 
+            onClick={() => { setIsEventBoletasOpen(false); if (boletaEventContext) openBoleta(boletaEventContext); }}
+          >
+            <Plus size={20} /> Agregar Boletas
+          </button>
         </div>
       </Modal>
 
