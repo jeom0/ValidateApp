@@ -5,6 +5,6 @@
   "scripts": {
     "postinstall": "cd server && npm install",
     "start": "node server/server.js",
-    "deploy": "cd client && npm run build && cd .. && git add client/dist -f && git add . && git commit -m \"Despliegue Automático V4.35\" && git push"
+    "deploy": "cd client && npm run build && cd .. && git add client/dist -f && git add . && git commit -m \"Despliegue Automático V4.38 - FIX VINCLULOS + IMAGENES\" && git push"
   }
 }

@@ -289,11 +289,14 @@ const Events: React.FC = () => {
       if (res.ok) {
         setIsLinkModalOpen(false);
         fetchEvents();
+        alert('🎉 Galería de diseños actualizada con éxito.');
       } else {
-        alert('Error al vincular designs');
+        const errData = await res.json().catch(() => ({}));
+        alert(`❌ Error al vincular diseños: ${errData.error || 'Problema en el servidor'}`);
       }
-    } catch {
-      alert('Error de conexión');
+    } catch (e) {
+      console.error('Error de conexión:', e);
+      alert('⚠️ Error de conexión. El servidor no respondió.');
     } finally {
       setLinking(false);
     }

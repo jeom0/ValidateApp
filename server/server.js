@@ -413,16 +413,22 @@ app.put('/api/templates/batch-link', (req, res) => {
   
   if (!eventId) return res.status(400).json({ error: 'ID de evento requerido' });
 
-  db.serialize(() => {
-    // 1. Unlink templates currently associated with this event
-    db.run('UPDATE templates SET eventId = NULL WHERE eventId = ?', [eventId]);
-    
+  // 1. Unlink templates currently associated with this event
+  db.run('UPDATE templates SET eventId = NULL WHERE eventId = ?', [eventId], (err1) => {
+    if (err1) {
+      console.error('Error desvinculando:', err1.message);
+      return res.status(500).json({ error: 'Error al limpiar vinculaciones previas' });
+    }
+
     // 2. Link the new set of templates
     if (templateIds && Array.isArray(templateIds) && templateIds.length > 0) {
       const placeholders = templateIds.map(() => '?').join(',');
       const sql = `UPDATE templates SET eventId = ? WHERE id IN (${placeholders})`;
-      db.run(sql, [eventId, ...templateIds], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
+      db.run(sql, [eventId, ...templateIds], function(err2) {
+        if (err2) {
+          console.error('Error vinculando:', err2.message);
+          return res.status(500).json({ error: 'Error al vincular nuevos diseños' });
+        }
         logActivity({ 
           type: 'template_updated', 
           message: `🔗 Galería Actualizada: ${this.changes} diseños vinculados al evento`,
@@ -431,7 +437,7 @@ app.put('/api/templates/batch-link', (req, res) => {
         res.json({ success: true, linkedCount: this.changes });
       });
     } else {
-      res.json({ success: true, linkedCount: 0 });
+      res.json({ success: true, linkedCount: 0, message: 'Todos los diseños desvinculados' });
     }
   });
 });
