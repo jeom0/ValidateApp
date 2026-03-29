@@ -382,34 +382,12 @@ const Clients: React.FC = () => {
                   background: '#fff',
                   boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#111' }}>#{b.consecutivo} - {b.eventName}</span>
-                        {b.used ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#059669', background: '#ecfdf5', padding: '0.25rem 0.6rem', borderRadius: 'full', fontSize: '0.65rem', fontWeight: 900, border: '1px solid #10b981' }}>
-                            <CheckCircle2 size={12} /> ESCANEADA
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4b5563', background: '#f3f4f6', padding: '0.25rem 0.6rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900, border: '1px solid #d1d5db' }}>
-                            <Clock size={12} /> SIN ESCANEAR
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* DISEÑO DE LA BOLETA (PEDIDO POR EL USUARIO V5.12) */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '0.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 900, background: '#eff6ff', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
-                          <Ticket size={14} /> DISEÑO: {b.templateName || 'POR DEFINIR'}
-                        </div>
-                      </div>
-                    </div>
-                    
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                     <button 
                       onClick={() => handleBoletaDelete(b.id, b.consecutivo)}
-                      style={{ color: '#dc2626', border: 'none', background: '#fef2f2', width: '2.5rem', height: '2.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                      style={{ color: '#dc2626', border: 'none', background: '#fef2f2', width: '2rem', height: '2rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', zIndex: 10 }}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                   
