@@ -540,9 +540,8 @@ const Events: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-            <button className="btn btn-ghost" style={{ flex: 1, height: '3.5rem' }} onClick={() => openBoleta(boletaEventContext!)}>Ver Listado</button>
-            <Button onClick={handleGenerateBoletas} disabled={isGenerating} style={{ flex: 2, height: '3.5rem' }}>
+          <div style={{ display: 'flex', marginTop: '1rem' }}>
+            <Button onClick={handleGenerateBoletas} disabled={isGenerating} style={{ flex: 1, height: '3.5rem' }}>
               {isGenerating ? <Loader2 className="spin" size={20} /> : <Plus size={20} />}
               Generar Boletas
             </Button>
