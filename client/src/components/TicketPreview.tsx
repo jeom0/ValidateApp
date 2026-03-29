@@ -1,5 +1,5 @@
 import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { QRCodeCanvas } from 'qrcode.react';
+import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { Download, Share2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -72,14 +72,36 @@ const TicketContent: React.FC<{
               boxShadow: isPrint ? 'none' : '0 10px 30px rgba(0,0,0,0.1)'
             }}
           >
-            <QRCodeCanvas 
-              value={ticket.code || 'VALIDATE-TEST'} 
-              size={512}
-              style={{ width: '100%', height: '100%', display: 'block' }}
-              level="H" 
-              bgColor="#ffffff"
-              fgColor="#000000"
-            />
+            <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <QRCodeSVG 
+                value={ticket?.code || 'VALIDATE-TEST'} 
+                size={256}
+                width="100%"
+                height="100%"
+                level="H" 
+                includeMargin={true}
+                imageSettings={undefined}
+              />
+              <div style={{ 
+                position: 'absolute', 
+                bottom: '-22px', 
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '120%',
+                textAlign: 'center', 
+                fontSize: '9px', 
+                fontWeight: 900, 
+                color: '#000',
+                background: 'rgba(255,255,255,0.9)',
+                padding: '2px 4px',
+                borderRadius: '4px',
+                whiteSpace: 'nowrap',
+                border: '1px solid #eee',
+                letterSpacing: '1px'
+              }}>
+                CODE: {ticket?.code || '---'}
+              </div>
+            </div>
           </div>
         </div>
       ) : (
@@ -95,15 +117,19 @@ const TicketContent: React.FC<{
           gap: '1.5rem',
           aspectRatio: '1 / 1.5'
         }}>
-          <div style={{ background: '#fff', padding: '1rem', borderRadius: '1.25rem' }}>
-            <QRCodeCanvas value={ticket.code || 'VALIDATE-TEST'} size={256} level="H" />
+          <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '1.25rem' }}>
+            <QRCodeSVG value={ticket?.code || 'VALIDATE-TEST'} size={200} level="H" includeMargin={true} />
           </div>
           <div>
             <p style={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TICKET DIGITAL</p>
             <h2 style={{ fontSize: '2.25rem', fontWeight: 900 }}>#{ticket.consecutivo}</h2>
+            <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', opacity: 0.8 }}>{ticket?.code}</p>
           </div>
         </div>
       )}
+      <div style={{ position: 'absolute', bottom: 5, right: 10, fontSize: '8px', color: 'rgba(0,0,0,0.2)', pointerEvents: 'none' }}>
+        v4.44-QR-FIX
+      </div>
     </div>
   );
 };
