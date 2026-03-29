@@ -64,7 +64,7 @@ const TicketContent: React.FC<{
               zIndex: 100,
               background: '#fff',
               borderRadius: isPrint ? '6px' : '10px',
-              padding: '2%',
+              padding: '1%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -94,7 +94,7 @@ const TicketContent: React.FC<{
       
       {/* INDICADOR DE DESPLIEGUE SEGURO */}
       <div style={{ position: 'absolute', bottom: 5, right: 10, fontSize: '10px', color: '#16a34a', fontWeight: 900 }}>
-        V5.7 - QR MAXIMUM SIZE
+        V5.8 - QR SIZE 1PCT
       </div>
     </div>
   );
