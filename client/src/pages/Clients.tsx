@@ -318,12 +318,14 @@ const Clients: React.FC = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '500px', overflowY: 'auto' }}>
             {clientBoletas.map(b => (
-              <div key={b.id} style={{ border: '1px solid #eee', borderRadius: '1rem', padding: '1rem', background: '#f9fafb' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <span style={{ fontWeight: 800 }}>#{b.consecutivo} - {b.eventName}</span>
-                  <button style={{ color: '#dc2626', border: 'none', background: 'transparent', cursor: 'pointer' }} onClick={() => handleBoletaDelete(b.id, b.consecutivo)}><Trash2 size={16} /></button>
+              <div key={b.id} style={{ border: '1px solid #eee', borderRadius: '1.25rem', padding: '1.25rem', background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <span style={{ fontWeight: 900, fontSize: '0.875rem', letterSpacing: '-0.02em' }}>#{b.consecutivo} - {b.eventName}</span>
+                  <button style={{ color: '#dc2626', border: 'none', background: '#fef2f2', width: '2rem', height: '2rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => handleBoletaDelete(b.id, b.consecutivo)}><Trash2 size={14} /></button>
                 </div>
-                <TicketPreview client={selectedClient} ticket={b} template={templates.find(t => t.id === b.templateId)} />
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <TicketPreview client={selectedClient} ticket={b} template={templates.find(t => t.id === b.templateId)} />
+                </div>
               </div>
             ))}
           </div>
