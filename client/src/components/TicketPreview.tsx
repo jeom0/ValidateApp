@@ -73,14 +73,12 @@ const TicketContent: React.FC<{
             }}
           >
             <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <QRCodeSVG 
-                value={ticket?.code || 'VALIDATE-TEST'} 
-                size={256}
-                width="100%"
-                height="100%"
-                level="H" 
-                includeMargin={true}
-                imageSettings={undefined}
+              {/* SOLUCIÓN DE ALTA COMPATIBILIDAD: Generador de imagen QR externo */}
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(ticket?.code || 'VALIDATE-TEST')}`}
+                alt="QR Code"
+                style={{ width: '100%', height: '100%', display: 'block', imageRendering: 'pixelated' }}
+                crossOrigin="anonymous"
               />
               <div style={{ 
                 position: 'absolute', 
@@ -118,7 +116,12 @@ const TicketContent: React.FC<{
           aspectRatio: '1 / 1.5'
         }}>
           <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '1.25rem' }}>
-            <QRCodeSVG value={ticket?.code || 'VALIDATE-TEST'} size={200} level="H" includeMargin={true} />
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(ticket?.code || 'VALIDATE-TEST')}`}
+              alt="QR Code"
+              style={{ width: '200px', height: '200px', display: 'block' }}
+              crossOrigin="anonymous"
+            />
           </div>
           <div>
             <p style={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TICKET DIGITAL</p>
