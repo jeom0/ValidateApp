@@ -1,12 +1,25 @@
-/**
- * database.js — sql.js wrapper with sqlite3-compatible callback API
- * Uses WebAssembly SQLite (sql.js) — no native binaries, works on any server.
- */
-
 const path = require('path');
 const fs = require('fs');
 
-const DB_PATH = path.resolve(__dirname, 'data.db');
+// --- PERSISTENCE FIX FOR HOSTINGER ---
+// We try to find a persistent 'data' folder outside the git repo.
+// In Hostinger, the home dir usually starts with /home/uXXXXX/
+const HOME_DIR = process.env.HOME || process.env.USERPROFILE || '';
+const HOSTINGER_PERSISTENT_DIR = path.join(HOME_DIR, 'data_validate');
+
+if (!fs.existsSync(HOSTINGER_PERSISTENT_DIR)) {
+  try { fs.mkdirSync(HOSTINGER_PERSISTENT_DIR, { recursive: true }); } catch (e) {}
+}
+
+const DB_PATH = process.env.DB_PATH || 
+                (fs.existsSync(HOSTINGER_PERSISTENT_DIR) 
+                  ? path.join(HOSTINGER_PERSISTENT_DIR, 'data.db') 
+                  : path.resolve(__dirname, 'data.db'));
+
+console.log('--- DATABASE PERSISTENCE INFO ---');
+console.log('Database Path:', DB_PATH);
+console.log('Persistent Dir:', HOSTINGER_PERSISTENT_DIR);
+console.log('---------------------------------');
 
 // ─── sql.js shim that mimics the sqlite3 callback API ─────────────────────────
 // We load sql.js synchronously, build the in-memory DB from file (if it exists),

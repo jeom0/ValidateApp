@@ -16,8 +16,8 @@ export interface TicketPreviewRef {
 }
 
 /**
- * 🚀 VERSION 4.2 - ULTIMATE RESPONSIVE + REAL PDF SHARING
- * Diseñado para ser 100% fiel a las proporciones del TemplateEditor.
+ * 🚀 VERSION 4.4 FINAL - RESPONSIVE DE PRECISIÓN Y ENVÍO DE ARCHIVOS
+ * Garantiza que el QR esté exactamente donde se puso en el editor.
  */
 const TicketContent: React.FC<{
   ticket: any;
@@ -53,7 +53,7 @@ const TicketContent: React.FC<{
             crossOrigin="anonymous"
           />
           
-          {/* QR POSICIONADO POR PORCENTAJES (IGUAL AL EDITOR) */}
+          {/* QR POSICIONADO POR PORCENTAJES (ASIGNACIÓN DIRECTA DEL EDITOR) */}
           <div
             style={{
               position: 'absolute',
@@ -74,14 +74,10 @@ const TicketContent: React.FC<{
               level="H" 
               bgColor="transparent"
             />
-            {/* DEBUG BADGE: SI VES ESTO EN ROJO, ES LA VERSION NUEVA */}
-            <div style={{ position: 'absolute', top: '-15px', right: 0, fontSize: '10px', color: 'red', fontWeight: 900, background: 'white', padding: '2px 4px', borderRadius: '4px', opacity: isPrint ? 0 : 1 }}>
-              V4.2 - LIVE
-            </div>
           </div>
         </div>
       ) : (
-        /* Fallback Minimalista si no hay plantilla */
+        /* Fallback si no hay plantilla */
         <div style={{ 
           padding: '3rem 2rem', 
           background: 'linear-gradient(135deg, #09090b 0%, #18181b 100%)', 
@@ -90,7 +86,7 @@ const TicketContent: React.FC<{
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center', 
-          gap: '2rem',
+          gap: '1.5rem',
           aspectRatio: '1 / 1.5'
         }}>
           <div style={{ background: '#fff', padding: '1rem', borderRadius: '1.25rem' }}>
@@ -98,7 +94,7 @@ const TicketContent: React.FC<{
           </div>
           <div>
             <p style={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TICKET DIGITAL</p>
-            <h2 style={{ fontSize: '2rem', fontWeight: 900 }}>#{ticket.consecutivo}</h2>
+            <h2 style={{ fontSize: '2.25rem', fontWeight: 900 }}>#{ticket.consecutivo}</h2>
           </div>
         </div>
       )}
@@ -118,9 +114,7 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
       setDownloading(true);
 
       try {
-        // Esperamos un poco para que el canvas esté listo
         await new Promise(r => setTimeout(r, 400));
-
         const canvas = await html2canvas(printRef.current, {
           useCORS: true,
           scale: 3,
@@ -138,20 +132,19 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
 
         if (shouldShare && typeof navigator.share !== 'undefined') {
           const blob = pdf.output('blob');
-          const file = new File([blob], `Ticket_${ticket.consecutivo}.pdf`, { type: 'application/pdf' });
+          const file = new File([blob], `Boleta_${ticket.consecutivo}.pdf`, { type: 'application/pdf' });
 
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
               files: [file],
               title: 'Tu Boleta Digital',
-              text: 'Aquí está tu entrada para el evento.'
+              text: 'Entrada oficial para el evento.'
             });
             setDownloading(false);
             return;
           }
         }
-
-        pdf.save(`Ticket_${ticket.consecutivo}.pdf`);
+        pdf.save(`Boleta_${ticket.consecutivo}.pdf`);
       } catch (err) {
         console.error(err);
         alert('Error al generar el PDF.');
@@ -166,20 +159,20 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
 
     return (
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
-        {/* VISTA PREVIA DENTRO DE LA WEB */}
+        {/* VISTA PREVIA (SE ADAPTA A LA PANTALLA) */}
         <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
           <TicketContent ticket={ticket} template={template} />
         </div>
 
-        {/* CONTENEDOR OCULTO PARA EL GENERADOR DE PDF (600px FIJOS) */}
+        {/* GENERADOR PDF OCULTO (TAMAÑO FIJO 600px PARA ALTA CALIDAD) */}
         <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
           <div ref={printRef} style={{ width: '600px' }}>
             <TicketContent ticket={ticket} template={template} width={600} isPrint={true} />
           </div>
         </div>
 
-        {/* ACCIONES PREMIUM */}
-        <div style={{ display: 'flex', gap: '1rem', width: '100%', maxWidth: '420px', flexWrap: 'wrap' }}>
+        {/* ACCIONES */}
+        <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '420px' }}>
           <button
             onClick={() => downloadPDF(false)}
             disabled={downloading}
@@ -192,8 +185,8 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
               border: 'none',
               fontWeight: 800,
               fontSize: '1rem',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
             }}
           >
             {downloading ? 'Generando...' : 'Descargar PDF'}
@@ -215,7 +208,6 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
                 cursor: 'pointer',
                 boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)'
               }}
-              title="Compartir Archivo PDF"
             >
               <Share2 size={24} />
             </button>
@@ -236,7 +228,6 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
               cursor: 'pointer',
               boxShadow: '0 10px 25px rgba(37, 211, 102, 0.3)'
             }}
-            title="Enviar por WhatsApp"
           >
             <Send size={24} />
           </button>

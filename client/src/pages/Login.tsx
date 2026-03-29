@@ -88,18 +88,19 @@ const Login: React.FC = () => {
       }}>
         {/* VERSION BANNER */}
         <div style={{ 
-          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
-          padding: '0.75rem', 
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', 
+          padding: '1rem', 
+          textAlign: 'center', 
           color: '#fff', 
           fontWeight: 900, 
-          fontSize: '0.75rem', 
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase'
+          fontSize: '0.875rem', 
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          borderBottom: '2px solid rgba(255,255,255,0.1)'
         }}>
-          🚀 V4.1 - NUEVA VERSIÓN INSTALADA (Limpia Caché)
+          🛡️ V4.3 ULTRA - SISTEMA ESTABLE & SEGURO
         </div>
-
-        <div style={{ padding: '3rem 2.5rem' }}>
+        <div style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div style={{
             width: 72,
             height: 72,

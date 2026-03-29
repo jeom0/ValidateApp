@@ -4,6 +4,7 @@
   "description": "Hostinger Monorepo Root",
   "scripts": {
     "postinstall": "cd server && npm install",
-    "start": "node server/server.js"
+    "start": "node server/server.js",
+    "deploy": "cd client && npm run build && cd .. && git add client/dist -f && git add . && git commit -m \"Despliegue Automático V4.3\" && git push"
   }
 }
