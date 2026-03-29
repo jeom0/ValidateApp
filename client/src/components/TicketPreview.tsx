@@ -145,11 +145,17 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
         
         pdf.save(`Ticket_${ticket.consecutivo}.pdf`);
       } catch (err: any) {
-        // 🤫 SILENCIAR ABORTERROR (Si el usuario cancela la acción de compartir)
-        if (err.name === 'AbortError') {
-          console.log("Compartir cancelado por el usuario.");
+        // 🤫 SILENCIAR ERRORES DE CANCELACIÓN (Si el usuario cancela la acción de compartir)
+        const isCancel = 
+          err.name === 'AbortError' || 
+          err.name === 'NotAllowedError' || 
+          err.message?.toLowerCase().includes('share') ||
+          err.message?.toLowerCase().includes('cancel');
+
+        if (isCancel) {
+          console.log("Acción cancelada por el usuario.");
         } else {
-          console.error("Error PDF:", err);
+          console.error("Error PDF Real:", err);
           alert('Error al generar el PDF.');
         }
       }
