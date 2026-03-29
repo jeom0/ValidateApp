@@ -165,16 +165,32 @@ app.post('/api/events', (req, res) => {
 });
 
 app.put('/api/events/:id', (req, res) => {
+  const { id } = req.params;
   const { name, date, startTime, endTime, imageUrl, status, location } = req.body;
-  db.run(
-    'UPDATE events SET name = ?, date = ?, startTime = ?, endTime = ?, imageUrl = ?, status = ?, location = ? WHERE id = ?',
-    [name, date, startTime, endTime, imageUrl, status, location, req.params.id],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      logActivity({ type: 'event_updated', message: `Evento editado: ${name}`, eventName: name });
-      res.json({ id: req.params.id, name, date, startTime, endTime, imageUrl, status, location });
-    }
-  );
+  
+  // 🛡️ Lógica resiliente: Buscar valores actuales si faltan en la petición
+  db.get('SELECT * FROM events WHERE id = ?', [id], (err, current) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!current) return res.status(404).json({ error: 'Evento no encontrado' });
+
+    const finalName = name || current.name;
+    const finalDate = date || current.date;
+    const finalStart = startTime || current.startTime;
+    const finalEnd = endTime || current.endTime;
+    const finalImg = imageUrl || current.imageUrl;
+    const finalStatus = status || current.status || 'pendiente';
+    const finalLoc = location !== undefined ? location : current.location;
+
+    db.run(
+      'UPDATE events SET name = ?, date = ?, startTime = ?, endTime = ?, imageUrl = ?, status = ?, location = ? WHERE id = ?',
+      [finalName, finalDate, finalStart, finalEnd, finalImg, finalStatus, finalLoc, id],
+      function(updErr) {
+        if (updErr) return res.status(500).json({ error: updErr.message });
+        logActivity({ type: 'event_updated', message: `Evento editado: ${finalName}`, eventName: finalName });
+        res.json({ id, name: finalName, date: finalDate, status: finalStatus });
+      }
+    );
+  });
 });
 
 app.delete('/api/events/:id', (req, res) => {

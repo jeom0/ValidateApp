@@ -31,7 +31,7 @@ interface Event {
   location?: string;
 }
 
-const emptyForm = { name: '', date: '', startTime: '', endTime: '', imageUrl: '', location: '' };
+const emptyForm = { name: '', date: '', startTime: '', endTime: '', imageUrl: '', location: '', status: 'pendiente' };
 
 /* Drag/drop image uploader */
 const ImageUploader = ({ value, onChange }: { value: string; onChange: (b64: string) => void }) => {
@@ -148,7 +148,8 @@ const Events: React.FC = () => {
       startTime: event.startTime, 
       endTime: event.endTime, 
       imageUrl: event.imageUrl,
-      location: event.location || ''
+      location: event.location || '',
+      status: event.status || 'pendiente'
     });
     setIsModalOpen(true);
   };
@@ -273,7 +274,16 @@ const Events: React.FC = () => {
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(form) 
       });
-      if (res.ok) { close(); fetchEvents(); }
+      if (res.ok) { 
+        close(); 
+        fetchEvents(); 
+      } else {
+        const errData = await res.json();
+        alert('Error al guardar: ' + (errData.error || 'Problema en el servidor'));
+      }
+    } catch (err: any) {
+      console.error("Save error:", err);
+      alert('Error de conexión con el servidor. Reintenta.');
     } finally { setSaving(false); }
   };
 
