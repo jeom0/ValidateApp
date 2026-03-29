@@ -240,7 +240,20 @@ app.get('/api/clients', (req, res) => {
 });
 
 app.get('/api/clients/:id/boletas', (req, res) => {
-  db.all('SELECT b.*, e.name as eventName, e.imageUrl as eventImageUrl FROM boletas b LEFT JOIN events e ON b.eventId = e.id WHERE b.clientId = ?', [req.params.id], (err, rows) => {
+  const query = `
+    SELECT b.*, 
+           e.name as eventName, 
+           e.imageUrl as eventImageUrl,
+           e.location,
+           e.date,
+           e.startTime,
+           e.endTime
+    FROM boletas b 
+    LEFT JOIN events e ON b.eventId = e.id 
+    WHERE b.clientId = ?
+  `;
+  db.all(query, [req.params.id], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });

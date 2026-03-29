@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config';
 import { Modal } from '../components/Modal';
-import { Search, Edit2, Trash2, Ticket, ChevronRight, UserPlus, Plus, Minus, Calendar, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { Search, Edit2, Trash2, Ticket, ChevronRight, UserPlus, Plus, Minus, Calendar, CheckCircle2, Clock, Loader2, MapPin } from 'lucide-react';
 import TicketPreview from '../components/TicketPreview';
 import Stepper from '../components/Stepper';
 import EmptyState from '../components/EmptyState';
@@ -378,19 +378,31 @@ const Clients: React.FC = () => {
                   boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ fontWeight: 900, fontSize: '0.9rem' }}>#{b.consecutivo} - {b.eventName}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#111' }}>#{b.consecutivo} - {b.eventName}</span>
+                        {b.used ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#059669', background: '#ecfdf5', padding: '0.25rem 0.6rem', borderRadius: 'full', fontSize: '0.65rem', fontWeight: 900, border: '1px solid #10b981' }}>
+                            <CheckCircle2 size={12} /> ESCANEADA
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4b5563', background: '#f3f4f6', padding: '0.25rem 0.6rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900, border: '1px solid #d1d5db' }}>
+                            <Clock size={12} /> SIN ESCANEAR
+                          </div>
+                        )}
+                      </div>
                       
-                      {/* ETIQUETAS DE ESTADO (PEDIDAS POR EL USUARIO) */}
-                      {b.used ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#059669', background: '#ecfdf5', padding: '0.25rem 0.6rem', borderRadius: 'full', fontSize: '0.65rem', fontWeight: 900, border: '1px solid #10b981' }}>
-                          <CheckCircle2 size={12} /> ESCANEADA
+                      {/* DETALLES LOGÍSTICOS DEL EVENTO (PEDIDOS POR EL USUARIO V5.10) */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '0.25rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#6b7280', fontSize: '0.75rem', fontWeight: 600 }}>
+                          <MapPin size={14} style={{ color: '#3b82f6' }} /> {b.location || 'Lugar por definir'}
                         </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4b5563', background: '#f3f4f6', padding: '0.25rem 0.6rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900, border: '1px solid #d1d5db' }}>
-                          <Clock size={12} /> SIN ESCANEAR
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#6b7280', fontSize: '0.75rem', fontWeight: 600 }}>
+                          <Calendar size={14} style={{ color: '#3b82f6' }} /> 
+                          {b.date ? new Date(b.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Fecha pendiente'} 
+                          {b.startTime && ` • ${b.startTime}`}
                         </div>
-                      )}
+                      </div>
                     </div>
                     
                     <button 
