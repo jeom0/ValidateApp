@@ -289,9 +289,9 @@ const Clients: React.FC = () => {
 
             {isEditing ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <input className="input" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nombre completo" />
-                <input className="input" value={editCedula} onChange={e => setEditCedula(e.target.value)} placeholder="Cédula / ID" />
-                <input className="input" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Correo electrónico" />
+                <input className="input" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nombre completo" required />
+                <input className="input" value={editCedula} onChange={e => setEditCedula(e.target.value)} placeholder="Cédula / ID" required />
+                <input className="input" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Correo electrónico" required />
                 
                 <div style={{ padding: '1.25rem', background: '#f9fafb', borderRadius: '1.25rem', border: '1px solid #eee' }}>
                   <label className="input-label" style={{ marginBottom: '0.75rem', fontSize: '0.7rem' }}>AÑADIR NUEVAS BOLETAS</label>
@@ -340,7 +340,7 @@ const Clients: React.FC = () => {
         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div><label className="input-label">Información Personal</label><input className="input" placeholder="Nombre completo" value={name} onChange={e => setName(e.target.value)} required /></div>
           <input className="input" placeholder="Cédula / Documento" value={cedula} onChange={e => setCedula(e.target.value)} required />
-          <input className="input" type="email" placeholder="Correo (Opcional)" value={email} onChange={e => setEmail(e.target.value)} />
+          <input className="input" type="email" placeholder="Correo electrónico" value={email} onChange={e => setEmail(e.target.value)} required />
           
           <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '1.25rem', border: '1px solid #eee' }}>
             <label className="input-label" style={{ marginBottom: '0.5rem' }}>Boletas y Evento</label>

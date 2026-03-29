@@ -246,9 +246,9 @@ const Events: React.FC = () => {
   const openEventBoletas = async (event: Event) => {
     setBoletaEventContext(event);
     setIsEventBoletasOpen(true);
-    // Fetch templates to show in the generation form
+    // Fetch full templates (not compact) to show images in the gallery
     try {
-      const res = await fetch(`${API_URL}/api/templates?compact=true`);
+      const res = await fetch(`${API_URL}/api/templates`);
       const data = await res.json();
       setAllTemplates(Array.isArray(data) ? data : []);
     } catch { 
@@ -300,8 +300,8 @@ const Events: React.FC = () => {
   };
 
   const handleGenerateBoletas = async () => {
-    if (!boletaEventContext || !genName || !genTemplateId) {
-      alert('Completa el nombre y elige un diseño');
+    if (!boletaEventContext || !genName || !genCedula || !genEmail || !genTemplateId) {
+      alert('Todos los campos (Nombre, Cédula, Correo y Diseño) son obligatorios.');
       return;
     }
     setIsGenerating(true);
@@ -450,15 +450,15 @@ const Events: React.FC = () => {
                 <input className="input" placeholder="Nombre completo" value={genName} onChange={e => setGenName(e.target.value)} required />
               </div>
               <div>
-                <label className="input-label">Identificación (CC)</label>
-                <input className="input" placeholder="Opcional" value={genCedula} onChange={e => setGenCedula(e.target.value)} />
+                <label className="input-label">Identificación (Cédula)</label>
+                <input className="input" placeholder="Requerido" value={genCedula} onChange={e => setGenCedula(e.target.value)} required />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
               <div>
                 <label className="input-label">Correo Electrónico</label>
-                <input type="email" className="input" placeholder="Opcional" value={genEmail} onChange={e => setGenEmail(e.target.value)} />
+                <input type="email" className="input" placeholder="ejemplo@correo.com" value={genEmail} onChange={e => setGenEmail(e.target.value)} required />
               </div>
               <div>
                 <label className="input-label">Cantidad</label>
