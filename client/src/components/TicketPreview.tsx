@@ -8,11 +8,6 @@ interface Props {
   client: any; 
   ticket: any; 
   template: any;
-  selectable?: boolean;
-  selected?: boolean;
-  onSelectToggle?: () => void;
-  onEdit?: () => void;
-  onDelete?: () => void;
 }
 
 export interface TicketPreviewRef {
@@ -21,40 +16,44 @@ export interface TicketPreviewRef {
 }
 
 /**
- * FIXED VERSION 3.0 - FRONTEND ONLY - PREMIUM RESPONSIVE & HIGH-RES PDF
+ * 🚀 VERSION 4.2 - ULTIMATE RESPONSIVE + REAL PDF SHARING
+ * Diseñado para ser 100% fiel a las proporciones del TemplateEditor.
  */
-const TicketContent: React.FC<{ ticket: any, template: any, width?: string | number, isPrint?: boolean }> = ({ ticket, template, width = '100%', isPrint = false }) => {
+const TicketContent: React.FC<{
+  ticket: any;
+  template: any;
+  width?: number | string;
+  isPrint?: boolean;
+}> = ({ ticket, template, width = '100%', isPrint = false }) => {
+
   const hasTemplate = template && template.imageUrl;
-  
+
   return (
-    <div style={{ 
-      position: 'relative', 
-      width, 
-      aspectRatio: hasTemplate ? 'auto' : '1 / 1.41', // Standard A-series proportion if no template
-      background: hasTemplate ? 'transparent' : '#fff', 
-      borderRadius: isPrint ? '0' : '1.5rem', 
-      overflow: 'hidden', 
-      boxShadow: isPrint ? 'none' : '0 25px 60px rgba(0,0,0,0.2)',
-      display: 'flex',
-      flexDirection: 'column',
-      transition: 'all 0.3s ease'
-    }}>
+    <div
+      style={{
+        position: 'relative',
+        width,
+        maxWidth: isPrint ? '600px' : '420px',
+        margin: '0 auto',
+        borderRadius: isPrint ? 0 : '1.5rem',
+        overflow: 'hidden',
+        background: hasTemplate ? 'transparent' : '#fff',
+        boxShadow: isPrint ? 'none' : '0 25px 60px rgba(0,0,0,0.25)',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
       {hasTemplate ? (
-        <div style={{ position: 'relative', width: '100%', height: 'auto', display: 'flex', flexDirection: 'column' }}>
-          {/* Main Template Image */}
+        <div style={{ position: 'relative', width: '100%', lineHeight: 0 }}>
+          {/* USAMOS <IMG> PARA QUE EL DIV TENGA EL TAMAÑO EXACTO DE LA PLANTILLA */}
           <img 
             src={template.imageUrl} 
-            alt="Ticket Template" 
-            style={{ 
-              width: '100%', 
-              height: 'auto', 
-              display: 'block',
-              objectFit: 'contain' 
-            }} 
-            crossOrigin="anonymous" 
+            alt="Ticket" 
+            style={{ width: '100%', height: 'auto', display: 'block' }} 
+            crossOrigin="anonymous"
           />
           
-          {/* Floating QR Code - Perfectly centered in its defined zone */}
+          {/* QR POSICIONADO POR PORCENTAJES (IGUAL AL EDITOR) */}
           <div
             style={{
               position: 'absolute',
@@ -75,19 +74,31 @@ const TicketContent: React.FC<{ ticket: any, template: any, width?: string | num
               level="H" 
               bgColor="transparent"
             />
-            {/* DEBUG BADGE - SI NO VES ESTO EN ROJO, SIGUES EN LA VERSIÓN VIEJA */}
-            <div style={{ position: 'absolute', top: '-15px', right: 0, fontSize: '10px', color: 'red', fontWeight: 900, background: 'white', padding: '2px 4px', borderRadius: '4px' }}>V4.0 - LIVE</div>
+            {/* DEBUG BADGE: SI VES ESTO EN ROJO, ES LA VERSION NUEVA */}
+            <div style={{ position: 'absolute', top: '-15px', right: 0, fontSize: '10px', color: 'red', fontWeight: 900, background: 'white', padding: '2px 4px', borderRadius: '4px', opacity: isPrint ? 0 : 1 }}>
+              V4.2 - LIVE
+            </div>
           </div>
         </div>
       ) : (
-        /* Professional Fallback (if no image is uploaded) */
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', gap: '2rem', background: 'linear-gradient(135deg, #000 0%, #333 100%)', color: '#fff' }}>
-          <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '1.5rem', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
-            <QRCodeCanvas value={ticket.code} size={200} level="H" />
+        /* Fallback Minimalista si no hay plantilla */
+        <div style={{ 
+          padding: '3rem 2rem', 
+          background: 'linear-gradient(135deg, #09090b 0%, #18181b 100%)', 
+          color: '#fff', 
+          textAlign: 'center', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          gap: '2rem',
+          aspectRatio: '1 / 1.5'
+        }}>
+          <div style={{ background: '#fff', padding: '1rem', borderRadius: '1.25rem' }}>
+            <QRCodeCanvas value={ticket.code} size={180} level="H" />
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.6, marginBottom: '0.5rem' }}>🎫 VALIDATE PRO TICKET</div>
-            <div style={{ fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.02em' }}>#{ticket.consecutivo}</div>
+          <div>
+            <p style={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TICKET DIGITAL</p>
+            <h2 style={{ fontSize: '2rem', fontWeight: 900 }}>#{ticket.consecutivo}</h2>
           </div>
         </div>
       )}
@@ -95,154 +106,144 @@ const TicketContent: React.FC<{ ticket: any, template: any, width?: string | num
   );
 };
 
-const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, template, selectable, selected, onSelectToggle, onEdit, onDelete }, ref) => {
-  const printRef = useRef<HTMLDivElement>(null);
-  const [downloading, setDownloading] = useState(false);
+const TicketPreview = forwardRef<TicketPreviewRef, Props>(
+  ({ client, ticket, template }, ref) => {
+    const printRef = useRef<HTMLDivElement>(null);
+    const [downloading, setDownloading] = useState(false);
 
-  useImperativeHandle(ref, () => ({
-    downloadPDF,
-    downloading
-  }));
+    useImperativeHandle(ref, () => ({ downloadPDF, downloading }));
 
-  const downloadPDF = async (shouldShare: boolean = false) => {
-    if (!printRef.current) return;
-    setDownloading(true);
-    try {
-      await new Promise(r => setTimeout(r, 400)); 
-      
-      const canvas = await html2canvas(printRef.current, {
-        useCORS: true,
-        scale: 3, 
-        backgroundColor: '#ffffff',
-        logging: false,
-        width: 600
-      });
+    const downloadPDF = async (shouldShare = false) => {
+      if (!printRef.current) return;
+      setDownloading(true);
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.98);
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: [canvas.width / 3, canvas.height / 3]
-      });
-      
-      pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width / 3, canvas.height / 3);
-      
-      if (shouldShare && typeof navigator.share !== 'undefined') {
-        const blob = pdf.output('blob');
-        const file = new File([blob], `Ticket_${ticket.consecutivo}.pdf`, { type: 'application/pdf' });
-        
-        // Check if browser supports sharing files
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
+      try {
+        // Esperamos un poco para que el canvas esté listo
+        await new Promise(r => setTimeout(r, 400));
+
+        const canvas = await html2canvas(printRef.current, {
+          useCORS: true,
+          scale: 3,
+          backgroundColor: '#ffffff'
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [canvas.width / 3, canvas.height / 3]
+        });
+
+        pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width / 3, canvas.height / 3);
+
+        if (shouldShare && typeof navigator.share !== 'undefined') {
+          const blob = pdf.output('blob');
+          const file = new File([blob], `Ticket_${ticket.consecutivo}.pdf`, { type: 'application/pdf' });
+
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
               files: [file],
-              title: `Boleta #${ticket.consecutivo}`,
-              text: `Aquí tienes tu entrada.`
+              title: 'Tu Boleta Digital',
+              text: 'Aquí está tu entrada para el evento.'
             });
             setDownloading(false);
             return;
-          } catch (shareErr) {
-            console.warn("Share failed", shareErr);
           }
         }
+
+        pdf.save(`Ticket_${ticket.consecutivo}.pdf`);
+      } catch (err) {
+        console.error(err);
+        alert('Error al generar el PDF.');
       }
-      
-      // Fallback: Just download
-      pdf.save(`Ticket_QR_${ticket.consecutivo}.pdf`);
-    } catch (err) {
-      console.error("PDF Error:", err);
-      alert("Error al generar el PDF. Asegúrate de tener conexión.");
-    }
-    setDownloading(false);
-  };
+      setDownloading(false);
+    };
 
-  const shareWhatsApp = () => {
-    const text = `Hola ${client.name},\nAquí tienes tu entrada digital para el evento.\n\nTicket: #${ticket.consecutivo}\nRef: ${ticket.code.substring(0,8).toUpperCase()}\n\n¡Te esperamos!`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-  };
+    const shareWhatsApp = () => {
+      const text = `Hola ${client.name},\nAquí tienes tu entrada digital 🎫\n\nTicket #${ticket.consecutivo}\nRef: ${ticket.code?.slice(0, 8)}\n\n¡Te esperamos!`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    };
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', width: '100%', padding: '0.5rem' }}>
-      {/* 1. INTERACTIVE PREVIEW (Responsive) */}
-      <div style={{ width: '100%', maxWidth: '400px', cursor: 'default' }}>
-        <TicketContent ticket={ticket} template={template} />
-      </div>
-
-      {/* 2. HIDDEN HIGH-RES PRINT VIEW */}
-      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-        <div ref={printRef} style={{ width: '600px' }}>
-          <TicketContent ticket={ticket} template={template} width={600} isPrint={true} />
+    return (
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
+        {/* VISTA PREVIA DENTRO DE LA WEB */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <TicketContent ticket={ticket} template={template} />
         </div>
-      </div>
-      
-      {/* 3. PREMIUM ACTIONS */}
-      <div style={{ display: 'flex', gap: '1rem', width: '100%', maxWidth: '420px', flexWrap: 'wrap' }}>
-        <button 
-          type="button"
-          onClick={() => downloadPDF(false)} 
-          disabled={downloading}
-          className="btn btn-primary"
-          style={{ 
-            flex: 1, 
-            borderRadius: '1.25rem', 
-            height: '4rem', 
-            fontSize: '1rem',
-            background: '#000',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
-          }}
-        >
-          {downloading ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div className="spinner-small" style={{ width: 18, height: 18, border: '3px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-              Generando...
-            </span>
-          ) : (
-            <><Download size={20} /> PDF</>
-          )}
-        </button>
 
-        {typeof navigator.share !== 'undefined' && (
-          <button 
-            type="button"
-            onClick={() => downloadPDF(true)}
-            className="btn"
-            style={{ 
-              width: '4rem', 
-              height: '4rem', 
-              borderRadius: '1.25rem', 
-              background: '#3b82f6', 
-              color: '#fff', 
-              padding: 0,
-              boxShadow: '0 10px 25px rgba(59, 130, 246, 0.25)'
+        {/* CONTENEDOR OCULTO PARA EL GENERADOR DE PDF (600px FIJOS) */}
+        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+          <div ref={printRef} style={{ width: '600px' }}>
+            <TicketContent ticket={ticket} template={template} width={600} isPrint={true} />
+          </div>
+        </div>
+
+        {/* ACCIONES PREMIUM */}
+        <div style={{ display: 'flex', gap: '1rem', width: '100%', maxWidth: '420px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => downloadPDF(false)}
+            disabled={downloading}
+            style={{
+              flex: 1,
+              height: '4rem',
+              borderRadius: '1.25rem',
+              background: '#000',
+              color: '#fff',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '1rem',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              cursor: 'pointer'
             }}
           >
-            <Share2 size={22} />
+            {downloading ? 'Generando...' : 'Descargar PDF'}
           </button>
-        )}
 
-        <button 
-          type="button"
-          onClick={shareWhatsApp}
-          className="btn"
-          style={{ 
-            width: '4rem', 
-            height: '4rem', 
-            borderRadius: '1.25rem', 
-            background: '#25d366', 
-            color: '#fff', 
-            padding: 0,
-            boxShadow: '0 10px 25px rgba(37, 211, 102, 0.25)'
-          }}
-        >
-          <Send size={22} />
-        </button>
+          {typeof navigator.share !== 'undefined' && (
+            <button
+              onClick={() => downloadPDF(true)}
+              style={{
+                width: '4rem',
+                height: '4rem',
+                borderRadius: '1.25rem',
+                background: '#3b82f6',
+                color: '#fff',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)'
+              }}
+              title="Compartir Archivo PDF"
+            >
+              <Share2 size={24} />
+            </button>
+          )}
+
+          <button
+            onClick={shareWhatsApp}
+            style={{
+              width: '4rem',
+              height: '4rem',
+              borderRadius: '1.25rem',
+              background: '#25d366',
+              color: '#fff',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 10px 25px rgba(37, 211, 102, 0.3)'
+            }}
+            title="Enviar por WhatsApp"
+          >
+            <Send size={24} />
+          </button>
+        </div>
       </div>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
-    </div>
-  );
-});
+    );
+  }
+);
 
 export default TicketPreview;
