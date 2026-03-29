@@ -16,8 +16,8 @@ export interface TicketPreviewRef {
 }
 
 /**
- * 🚀 VERSION 4.4 FINAL - RESPONSIVE DE PRECISIÓN Y ENVÍO DE ARCHIVOS
- * Garantiza que el QR esté exactamente donde se puso en el editor.
+ * 🚀 VERSION 4.5 - DISEÑO PREMIUM + ADJUNTO PDF REAL
+ * QR Proporcional con fondo blanco redondeado y sombreado sutil.
  */
 const TicketContent: React.FC<{
   ticket: any;
@@ -53,7 +53,7 @@ const TicketContent: React.FC<{
             crossOrigin="anonymous"
           />
           
-          {/* QR POSICIONADO POR PORCENTAJES (ASIGNACIÓN DIRECTA DEL EDITOR) */}
+          {/* QR POSICIONADO CON FONDO BLANCO REDONDEADO */}
           <div
             style={{
               position: 'absolute',
@@ -65,14 +65,18 @@ const TicketContent: React.FC<{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              aspectRatio: '1/1'
+              aspectRatio: '1/1',
+              background: '#fff',
+              borderRadius: '12px', // Bordes redondeados sutiles
+              padding: '4%', // Padding para que no toque los bordes
+              boxShadow: isPrint ? 'none' : '0 10px 30px rgba(0,0,0,0.1)'
             }}
           >
             <QRCodeCanvas 
               value={ticket.code || 'VALIDATE-TEST'} 
               style={{ width: '100%', height: '100%' }}
               level="H" 
-              bgColor="transparent"
+              bgColor="#ffffff"
             />
           </div>
         </div>
@@ -132,18 +136,26 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
 
         if (shouldShare && typeof navigator.share !== 'undefined') {
           const blob = pdf.output('blob');
-          const file = new File([blob], `Boleta_${ticket.consecutivo}.pdf`, { type: 'application/pdf' });
+          const fileName = `Boleta_${ticket.consecutivo}.pdf`;
+          const file = new File([blob], fileName, { type: 'application/pdf' });
 
+          // Intentamos compartir el ARCHIVO real
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: 'Tu Boleta Digital',
-              text: 'Entrada oficial para el evento.'
-            });
-            setDownloading(false);
-            return;
+            try {
+              await navigator.share({
+                files: [file],
+                title: 'Tu Boleta Digital 🎫',
+                text: `Hola ${client.name}, aquí tienes tu entrada para el evento.`
+              });
+              setDownloading(false);
+              return;
+            } catch (shareErr) {
+              console.warn("Share failed, falling back to download", shareErr);
+            }
           }
         }
+        
+        // Descarga normal si falla el share o no es share
         pdf.save(`Boleta_${ticket.consecutivo}.pdf`);
       } catch (err) {
         console.error(err);
@@ -208,6 +220,7 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
                 cursor: 'pointer',
                 boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)'
               }}
+              title="Compartir Archivo PDF"
             >
               <Share2 size={24} />
             </button>
@@ -228,6 +241,7 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
               cursor: 'pointer',
               boxShadow: '0 10px 25px rgba(37, 211, 102, 0.3)'
             }}
+            title="Enviar Texto por WhatsApp"
           >
             <Send size={24} />
           </button>
