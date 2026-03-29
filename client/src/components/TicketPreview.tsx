@@ -78,15 +78,15 @@ const TicketContent: React.FC<{
                 height: '100%', 
                 display: 'flex', 
                 alignItems: 'center', 
-                justifyContent: 'center'
+                justifyContent: 'center',
+                overflow: 'hidden'
               }}
             >
               <QRCodeSVG 
                 value={ticket?.code || 'VALIDATE-TEST'} 
-                size={256}
                 style={{ width: '100%', height: '100%', display: 'block' }} 
                 level="H"
-                includeMargin={false}
+                marginSize={0}
               />
             </div>
           </div>
@@ -114,8 +114,8 @@ const TicketContent: React.FC<{
           </div>
         </div>
       )}
-      <div style={{ position: 'absolute', bottom: 5, right: 10, fontSize: '10px', color: 'rgba(0,0,0,0.2)', fontWeight: 'bold' }}>
-        TICKET V5.0
+      <div style={{ position: 'absolute', bottom: 5, right: 10, fontSize: '10px', color: '#1d4ed8', fontWeight: 900 }}>
+        DEPLOY OK - V5.2 - QR READY
       </div>
     </div>
   );
