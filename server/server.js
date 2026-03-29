@@ -331,7 +331,7 @@ app.delete('/api/clients/:id', (req, res) => {
 app.get('/api/templates', (req, res) => {
   const { eventId, compact } = req.query;
   const isCompact = compact === 'true';
-  const fields = isCompact ? 't.id, t.name, t.qrX, t.qrY, t.qrWidth, t.qrHeight, t.eventId, e.name as eventName' : 't.*, e.name as eventName';
+  const fields = isCompact ? 't.id, t.name, t.imageUrl, t.qrX, t.qrY, t.qrWidth, t.qrHeight, t.eventId, e.name as eventName' : 't.*, e.name as eventName';
   
   let query = `
     SELECT ${fields}, 

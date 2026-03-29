@@ -261,7 +261,7 @@ const Events: React.FC = () => {
     setLinking(false);
     setIsLinkModalOpen(true);
     try {
-      const res = await fetch(`${API_URL}/api/templates?compact=true`);
+      const res = await fetch(`${API_URL}/api/templates`);
       const data = await res.json();
       const templates = Array.isArray(data) ? data : [];
       setAllTemplates(templates);
