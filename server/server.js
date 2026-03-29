@@ -354,16 +354,31 @@ app.delete('/api/templates/:id', (req, res) => {
 });
 
 app.put('/api/templates/:id', (req, res) => {
+  const { id } = req.params;
   const { name, imageUrl, qrX, qrY, qrWidth, qrHeight, eventId } = req.body;
-  db.run(
-    'UPDATE templates SET name=?, imageUrl=?, qrX=?, qrY=?, qrWidth=?, qrHeight=?, eventId=? WHERE id=?',
-    [name, imageUrl, qrX, qrY, qrWidth, qrHeight, eventId || null, req.params.id],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      logActivity({ type: 'template_updated', message: `🎨 Diseño actualizado: ${name}` });
-      res.json({ id: req.params.id, name, imageUrl, qrX, qrY, qrWidth, qrHeight, eventId });
-    }
-  );
+  
+  db.get('SELECT * FROM templates WHERE id = ?', [id], (err, current) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!current) return res.status(404).json({ error: 'Plantilla no encontrada' });
+
+    const finalName = name || current.name;
+    const finalImg = imageUrl || current.imageUrl;
+    const finalX = qrX !== undefined ? qrX : current.qrX;
+    const finalY = qrY !== undefined ? qrY : current.qrY;
+    const finalW = qrWidth !== undefined ? qrWidth : current.qrWidth;
+    const finalH = qrHeight !== undefined ? qrHeight : current.qrHeight;
+    const finalEvId = eventId !== undefined ? eventId : current.eventId;
+
+    db.run(
+      'UPDATE templates SET name=?, imageUrl=?, qrX=?, qrY=?, qrWidth=?, qrHeight=?, eventId=? WHERE id=?',
+      [finalName, finalImg, finalX, finalY, finalW, finalH, finalEvId, id],
+      function(updErr) {
+        if (updErr) return res.status(500).json({ error: updErr.message });
+        logActivity({ type: 'template_updated', message: `Plantilla editada: ${finalName}` });
+        res.json({ id, name: finalName, qrX: finalX, qrY: finalY });
+      }
+    );
+  });
 });
 
 // Boletas

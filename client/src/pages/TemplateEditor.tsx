@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { API_URL } from '../config';
 import { QRCodeSVG } from 'qrcode.react';
-import { Save, Upload, CheckCircle2, AlertCircle, ImageIcon, Move, Plus, Trash2, Edit2, Calendar, Ticket, LayoutTemplate } from 'lucide-react';
+import { Save, Upload, CheckCircle2, AlertCircle, ImageIcon, Move, Plus, Trash2, Edit2, Calendar, Ticket, LayoutTemplate, Loader2 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
 import EmptyState from '../components/EmptyState';
@@ -34,6 +34,10 @@ const TemplateEditor: React.FC = () => {
   const [dragOver, setDragOver] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // 🛡️ SYNC DE IMAGEN: Evita el despliegue en (0,0)
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [containerDims, setContainerDims] = useState({ w: 0, h: 0 });
 
   const fetchTemplates = async () => {
     setLoading(true);
@@ -52,6 +56,7 @@ const TemplateEditor: React.FC = () => {
 
   const handleOpenNew = () => {
     setActiveTemplate({ ...defaultTemplate, id: crypto.randomUUID() });
+    setImageLoaded(false);
     setSaveStatus('idle');
     setMessage('');
     setIsEditorOpen(true);
@@ -60,9 +65,16 @@ const TemplateEditor: React.FC = () => {
   const handleOpenEdit = (e: React.MouseEvent, t: Template) => {
     e.stopPropagation();
     setActiveTemplate({ ...t });
+    setImageLoaded(false); // Reset para forzar re-calculo
     setSaveStatus('idle');
     setMessage('');
     setIsEditorOpen(true);
+  };
+
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setContainerDims({ w: img.offsetWidth, h: img.offsetHeight });
+    setImageLoaded(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -81,13 +93,11 @@ const TemplateEditor: React.FC = () => {
 
   const handleSave = async () => {
     if (!activeTemplate.name || !activeTemplate.name.trim()) {
-      setSaveStatus('error');
-      setMessage('El nombre de la boleta es obligatorio');
+      alert('Debes escribir un nombre para la boleta');
       return;
     }
     if (!activeTemplate.imageUrl) {
-      setSaveStatus('error');
-      setMessage('Debes subir una imagen de fondo');
+      alert('Debes subir una imagen de fondo');
       return;
     }
 
@@ -113,11 +123,10 @@ const TemplateEditor: React.FC = () => {
         setIsEditorOpen(false);
       } else {
         const err = await res.json();
-        throw new Error(err.error || 'Error del servidor');
+        alert('No se pudo guardar: ' + (err.error || 'Error desconocido'));
       }
     } catch (e: any) {
-      setSaveStatus('error');
-      setMessage(e.message || 'Error al guardar');
+      alert('Error de red: No se pudo conectar al servidor');
     } finally {
       setLoading(false);
     }
@@ -126,7 +135,10 @@ const TemplateEditor: React.FC = () => {
   const loadFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = ev => setActiveTemplate(prev => ({ ...prev, imageUrl: ev.target?.result as string }));
+    reader.onload = ev => {
+      setActiveTemplate(prev => ({ ...prev, imageUrl: ev.target?.result as string }));
+      setImageLoaded(false);
+    };
     reader.readAsDataURL(file);
   };
 
@@ -147,11 +159,11 @@ const TemplateEditor: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.1 }}>
+          <h1 style={{ fontSize: '2.25rem', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.1 }}>
             Diseños de Boletas
           </h1>
           <p style={{ color: '#6b7280', marginTop: '0.375rem', fontWeight: 500 }}>
-            Administra los diseños visuales de tus boletas. Crea múltiples estilos para diferentes eventos o categorías.
+            Administra los diseños visuales de tus boletas.
           </p>
         </div>
         <Button onClick={handleOpenNew}>
@@ -159,126 +171,46 @@ const TemplateEditor: React.FC = () => {
         </Button>
       </div>
 
-      {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#6b7280', fontSize: '1.125rem', fontWeight: 600 }}>Cargando diseños...</div>
+      {loading && !isEditorOpen ? (
+        <div style={{ padding: '4rem', textAlign: 'center', color: '#6b7280' }}><Loader2 className="spin" /> Cargando...</div>
       ) : templates.length === 0 ? (
         <EmptyState 
           icon={LayoutTemplate} 
           title="Sin Diseños" 
-          description="Crea plantillas visuales personalizadas para tus boletas. Puedes tener múltiples estilos por cada evento." 
+          description="Crea plantillas visuales personalizadas para tus boletas." 
           action={{ label: "Crear Primer Diseño", onClick: handleOpenNew }}
         />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
           {templates.map(t => (
-            <div key={t.id} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <div style={{ width: '100%', aspectRatio: '1/1.4', background: '#f3f4f6', borderRadius: '0.875rem', overflow: 'hidden', position: 'relative', marginBottom: '0.875rem' }}>
-                {t.imageUrl ? (
-                  <img src={t.imageUrl} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af' }}>
-                    <ImageIcon size={32} />
-                  </div>
-                )}
+            <div key={t.id} className="card" style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ width: '100%', aspectRatio: '1/1.4', background: '#f3f4f6', borderRadius: '0.75rem', overflow: 'hidden', position: 'relative', marginBottom: '0.75rem' }}>
+                {t.imageUrl ? <img src={t.imageUrl} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={32} />}
               </div>
-
-              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.75rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                {t.name}
-              </h3>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', fontSize: '0.8125rem', fontWeight: 600 }}>
-                  <Calendar size={13} /> {t.eventName || 'Sin evento'}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', fontSize: '0.8125rem', fontWeight: 600 }}>
-                  <Ticket size={13} /> {t.clientCount || 0} boletas emitidas
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
-                <button
-                  type="button"
-                  onClick={(e) => handleOpenEdit(e, t)}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', padding: '0.625rem', background: '#f3f4f6', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.8125rem', color: '#374151', transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#e5e7eb'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#f3f4f6'}
-                >
-                  <Edit2 size={15} /> Editar
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(t.id); }}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.625rem', background: '#fef2f2', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', color: '#dc2626', transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#fef2f2'}
-                  title="Eliminar boleta"
-                >
-                  <Trash2 size={16} />
-                </button>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0 0 0.5rem' }}>{t.name}</h3>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="btn btn-ghost" onClick={(e) => handleOpenEdit(e, t)} style={{ flex: 1, height: '2.5rem' }}><Edit2 size={14} /> Editar</button>
+                <button className="btn" onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(t.id); }} style={{ background: '#fef2f2', color: '#dc2626', height: '2.5rem' }}><Trash2 size={16} /></button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Eliminar Plantilla y Boletas" maxWidth={420}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ color: '#374151', fontWeight: 500, lineHeight: 1.6 }}>
-            <p style={{ marginBottom: '1rem' }}>¿Estás seguro de que deseas eliminar este diseño de boleta?</p>
-            {templates.find(t => t.id === deleteConfirmId)?.clientCount ? (
-              <div style={{ background: '#fff5f5', border: '1px solid #fecaca', padding: '1rem', borderRadius: '0.75rem', color: '#dc2626', fontWeight: 700, display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <AlertCircle size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
-                <span>¡CUIDADO! Se eliminarán permanentemente {templates.find(t => t.id === deleteConfirmId)?.clientCount} boletas enlazadas a esta plantilla.</span>
-              </div>
-            ) : (
-              <p>Esta acción no se puede deshacer y el diseño dejará de estar disponible.</p>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <button onClick={() => setDeleteConfirmId(null)} type="button" className="btn" style={{ background: '#f3f4f6', color: '#374151', borderRadius: '0.875rem' }}>
-              Cancelar
-            </button>
-            <button onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)} type="button" className="btn" style={{ background: '#dc2626', color: '#fff', borderRadius: '0.875rem', gap: '0.5rem' }}>
-              <Trash2 size={16} /> Eliminar Todo
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)} title={activeTemplate.id && templates.some(t => t.id === activeTemplate.id) ? 'Editar Boleta' : 'Nueva Boleta'} maxWidth={800}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: '200px' }}>
-              <label className="input-label">
-                Nombre de la Boleta <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <input
-                className="input"
-                value={activeTemplate.name}
-                onChange={e => { setActiveTemplate({ ...activeTemplate, name: e.target.value }); if (saveStatus === 'error') setSaveStatus('idle'); }}
-                placeholder="Ej: VIP Noche, Entrada General..."
-                style={{ borderColor: saveStatus === 'error' && !activeTemplate.name.trim() ? '#dc2626' : undefined }}
-              />
+      {/* Editor Modal */}
+      <Modal isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)} title={activeTemplate.id && templates.some(t => t.id === activeTemplate.id) ? 'Editar Boleta' : 'Nueva Boleta'} maxWidth={850}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <label className="input-label">Nombre del Diseño</label>
+              <input className="input" value={activeTemplate.name} onChange={e => setActiveTemplate({ ...activeTemplate, name: e.target.value })} placeholder="Ej: General, VIP..." />
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingTop: '1.625rem' }}>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                style={{ borderRadius: '0.875rem', padding: '0.875rem 1.25rem', border: '1.5px dashed #d1d5db', gap: '0.625rem', height: '46px' }}
-                onClick={() => document.getElementById('img-upload-modal')?.click()}
-              >
-                <Upload size={18} style={{ color: '#6b7280' }} />
-                <span style={{ fontWeight: 700, color: '#374151' }}>{activeTemplate.imageUrl ? 'Cambiar Imagen' : 'Subir Imagen'}</span>
-              </button>
-              <input id="img-upload-modal" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
-            </div>
+            <button className="btn btn-ghost" onClick={() => document.getElementById('img-up')?.click()} style={{ height: '3.25rem', border: '1px dashed #ccc' }}><Upload size={18} /> Imagen</button>
+            <input id="img-up" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', fontSize: '0.875rem', fontWeight: 600, background: '#f9fafb', padding: '0.75rem', borderRadius: '0.75rem' }}>
-            <Move size={16} style={{ color: '#3b82f6' }} />
-            Arrastra el recuadro verde "QR" para posicionarlo en tu boleta. También puedes redimensionarlo desde las esquinas.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f0f9ff', color: '#0369a1', padding: '0.75rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 600 }}>
+            <Move size={16} /> Arrastra y redimensiona el <b>Código QR</b> para ubicarlo sobre tu diseño.
           </div>
 
           <div
@@ -287,151 +219,68 @@ const TemplateEditor: React.FC = () => {
             onDrop={handleDrop}
             style={{
               background: dragOver ? '#eff6ff' : '#f9fafb',
-              border: `2px dashed ${dragOver ? '#3b82f6' : activeTemplate.imageUrl ? 'transparent' : '#e5e7eb'}`,
-              borderRadius: '1.25rem',
-              minHeight: activeTemplate.imageUrl ? 'auto' : 320,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              transition: 'border-color 0.2s, background 0.2s',
-              padding: activeTemplate.imageUrl ? '1rem' : 0
+              border: `2px dashed ${activeTemplate.imageUrl ? 'transparent' : '#cbd5e1'}`,
+              borderRadius: '1.25rem', minHeight: activeTemplate.imageUrl ? 'auto' : 350,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: activeTemplate.imageUrl ? '1rem' : 0
             }}
           >
             {activeTemplate.imageUrl ? (
-                <div 
-                  ref={containerRef}
-                  id="template-container"
-                  style={{ 
-                    position: 'relative', 
-                    display: 'inline-block',
-                    maxWidth: '100%',
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  <img
-                    src={activeTemplate.imageUrl}
-                    alt="Fondo Boleta"
-                    className="canvas-img"
-                    style={{ 
-                      maxWidth: '100%', 
-                      height: 'auto',
-                      maxHeight: '65vh', 
-                      display: 'block', 
-                      borderRadius: '1rem',
-                      pointerEvents: 'none'
-                    }}
-                    draggable={false}
-                  />
+              <div ref={containerRef} style={{ position: 'relative', display: 'inline-block', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+                <img
+                  src={activeTemplate.imageUrl}
+                  alt="Template"
+                  onLoad={onImageLoad}
+                  style={{ maxWidth: '100%', maxHeight: '60vh', display: 'block', borderRadius: '0.5rem', pointerEvents: 'none' }}
+                />
+                
+                {imageLoaded && (
                   <Rnd
                     lockAspectRatio={true}
                     size={{ 
-                      width: (activeTemplate.qrWidth / 100) * (containerRef.current?.offsetWidth || 1) || 80, 
-                      height: (activeTemplate.qrHeight / 100) * (containerRef.current?.offsetHeight || 1) || 80 
+                      width: (activeTemplate.qrWidth / 100) * containerDims.w, 
+                      height: (activeTemplate.qrHeight / 100) * containerDims.h 
                     }}
                     position={{ 
-                      x: (activeTemplate.qrX / 100) * (containerRef.current?.offsetWidth || 1), 
-                      y: (activeTemplate.qrY / 100) * (containerRef.current?.offsetHeight || 1) 
+                      x: (activeTemplate.qrX / 100) * containerDims.w, 
+                      y: (activeTemplate.qrY / 100) * containerDims.h 
                     }}
                     onDragStop={(_e, d) => {
-                      if (containerRef.current) {
-                        const xPct = (d.x / containerRef.current.offsetWidth) * 100;
-                        const yPct = (d.y / containerRef.current.offsetHeight) * 100;
-                        setActiveTemplate(prev => ({ ...prev, qrX: xPct, qrY: yPct }));
-                      }
+                      const xPct = (d.x / containerDims.w) * 100;
+                      const yPct = (d.y / containerDims.h) * 100;
+                      setActiveTemplate(prev => ({ ...prev, qrX: xPct, qrY: yPct }));
                     }}
-                    onResizeStop={(_e, _dir, ref, _delta, position) => {
-                      if (containerRef.current) {
-                        const wPct = (parseInt(ref.style.width) / containerRef.current.offsetWidth) * 100;
-                        const hPct = (parseInt(ref.style.height) / containerRef.current.offsetHeight) * 100;
-                        const xPct = (position.x / containerRef.current.offsetWidth) * 100;
-                        const yPct = (position.y / containerRef.current.offsetHeight) * 100;
-                        setActiveTemplate(prev => ({ 
-                          ...prev, 
-                          qrWidth: wPct, 
-                          qrHeight: hPct, 
-                          qrX: xPct, 
-                          qrY: yPct 
-                        }));
-                      }
+                    onResizeStop={(_e, _dir, ref, _delta, pos) => {
+                      const wPct = (parseInt(ref.style.width) / containerDims.w) * 100;
+                      const hPct = (parseInt(ref.style.height) / containerDims.h) * 100;
+                      const xPct = (pos.x / containerDims.w) * 100;
+                      const yPct = (pos.y / containerDims.h) * 100;
+                      setActiveTemplate(prev => ({ ...prev, qrWidth: wPct, qrHeight: hPct, qrX: xPct, qrY: yPct }));
                     }}
                     bounds="parent"
-                    enableResizing={{
-                      top: true, right: true, bottom: true, left: true,
-                      topRight: true, bottomRight: true, bottomLeft: true, topLeft: true
-                    }}
                     style={{
-                      border: '3px solid #16a34a',
-                      background: '#fff',
-                      borderRadius: '12px',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
-                      zIndex: 10,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '4%',
-                      cursor: 'move',
-                      touchAction: 'none' // Critical for mobile drag
+                      border: '3px solid #16a34a', background: '#fff', borderRadius: '8px', zIndex: 10,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4%', cursor: 'move'
                     }}
                   >
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                      <QRCodeSVG value="MOCK-QR-PREVIEW" style={{ width: '100%', height: '100%' }} />
-                    </div>
+                    <QRCodeSVG value="PREVIEW" style={{ width: '100%', height: '100%' }} />
                   </Rnd>
+                )}
               </div>
             ) : (
-              <div
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 2rem', textAlign: 'center', cursor: 'pointer', width: '100%' }}
-                onClick={() => document.getElementById('img-upload-modal')?.click()}
-              >
-                <div style={{ width: 72, height: 72, background: '#f3f4f6', borderRadius: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <ImageIcon size={32} style={{ color: '#9ca3af' }} />
-                </div>
-                <div>
-                  <p style={{ fontWeight: 800, fontSize: '1.0625rem', color: '#374151', marginBottom: '0.25rem' }}>
-                    Arrastra o haz clic para subir el diseño
-                  </p>
-                  <p style={{ color: '#9ca3af', fontSize: '0.875rem', fontWeight: 500 }}>
-                    JPG, PNG o WebP. Usa un diseño vertical tipo boleta/ticket.
-                  </p>
-                </div>
-              </div>
+              <div style={{ textAlign: 'center', opacity: 0.5 }} onClick={() => document.getElementById('img-up')?.click()}><ImageIcon size={64} /><p>Sube una imagen para empezar</p></div>
             )}
           </div>
 
-          {/* Feedback */}
-          {saveStatus !== 'idle' && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-              padding: '0.75rem 1rem', borderRadius: '0.875rem',
-              fontWeight: 700, fontSize: '0.875rem',
-              background: saveStatus === 'error' ? '#fef2f2' : '#f0fdf4',
-              color: saveStatus === 'error' ? '#dc2626' : '#16a34a',
-              border: `1px solid ${saveStatus === 'error' ? '#fecaca' : '#bbf7d0'}`
-            }}>
-              {saveStatus === 'error' ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
-              {message}
-            </div>
-          )}
-
-          {/* Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-            <button onClick={() => setIsEditorOpen(false)} type="button" className="btn" style={{ background: '#f3f4f6', color: '#4b5563', borderRadius: '1rem' }}>
-              Cancelar
-            </button>
-            <button onClick={handleSave} disabled={loading} type="button" className="btn btn-primary" style={{ borderRadius: '1rem', minWidth: '140px' }}>
-              {loading ? (
-                <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> Guardando...</>
-              ) : (
-                <><Save size={16} /> Guardar Boleta</>
-              )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+            <button className="btn btn-ghost" onClick={() => setIsEditorOpen(false)} style={{ borderRadius: '1rem' }}>Cancelar</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={loading} style={{ minWidth: '150px', borderRadius: '1rem' }}>
+              {loading ? 'Guardando...' : <><Save size={18} /> Guardar Diseño</>}
             </button>
           </div>
         </div>
       </Modal>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };
