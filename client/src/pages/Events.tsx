@@ -158,6 +158,10 @@ const Events: React.FC = () => {
     setIsEventBoletasOpen(true);
   };
 
+  const openDesign = (event: Event) => {
+    navigate(`/admin/plantilla?eventId=${event.id}`);
+  };
+
   const openBoleta = (event: Event) => {
     window.location.href = `/boletas?eventId=${event.id}`;
   };
@@ -214,10 +218,11 @@ const Events: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn btn-ghost" style={{ flex: 1, height: '2.75rem', borderRadius: '0.75rem' }} onClick={() => handleEdit(event)}><Edit2 size={16} /> Editar</button>
-                  <button className="btn btn-ghost" style={{ flex: 1, height: '2.75rem', borderRadius: '0.75rem' }} onClick={() => openEventBoletas(event)}><Users size={16} /> Tickets</button>
-                  <button className="btn btn-ghost" style={{ width: '44px', padding: 0, color: '#dc2626', background: '#fef2f2', border: 'none' }} onClick={() => handleDelete(event.id)}><Trash2 size={18} /></button>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => handleEdit(event)}><Edit2 size={14} /> Editar</button>
+                  <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => openDesign(event)}><LayoutTemplate size={14} /> Diseño</button>
+                  <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => openEventBoletas(event)}><Users size={14} /> Tickets</button>
+                  <button className="btn btn-ghost" style={{ width: '40px', padding: 0, color: '#dc2626', background: '#fef2f2', border: 'none' }} onClick={() => handleDelete(event.id)}><Trash2 size={16} /></button>
                 </div>
               </div>
             </div>

@@ -26,6 +26,7 @@ const defaultTemplate: Template = {
 
 const TemplateEditor: React.FC = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<Template>(defaultTemplate);
@@ -48,6 +49,10 @@ const TemplateEditor: React.FC = () => {
     // 2. Cargar imágenes en segundo plano
     const fullData = await fetch(`${API_URL}/api/templates`).then(r => r.json());
     if (Array.isArray(fullData)) setTemplates(fullData);
+
+    // 3. Cargar eventos para el selector
+    const evs = await fetch(`${API_URL}/api/events?compact=true`).then(r => r.json());
+    if (Array.isArray(evs)) setEvents(evs);
   };
 
   useEffect(() => { fetchTemplates(); }, []);
@@ -223,6 +228,13 @@ const TemplateEditor: React.FC = () => {
             <div style={{ flex: 1 }}>
               <label className="input-label">Nombre del Diseño</label>
               <input className="input" value={activeTemplate.name} onChange={e => setActiveTemplate({ ...activeTemplate, name: e.target.value })} placeholder="Ej: General, VIP..." />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label className="input-label">Evento Relacionado</label>
+              <select className="input" value={activeTemplate.eventId || ''} onChange={e => setActiveTemplate({ ...activeTemplate, eventId: e.target.value })}>
+                <option value="">Seleccionar Evento...</option>
+                {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+              </select>
             </div>
             <button className="btn btn-ghost" onClick={() => document.getElementById('img-up')?.click()} style={{ height: '3.25rem', border: '1px dashed #ccc' }}><Upload size={18} /> Imagen</button>
             <input id="img-up" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
