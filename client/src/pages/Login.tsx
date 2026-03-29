@@ -98,7 +98,7 @@ const Login: React.FC = () => {
           textTransform: 'uppercase',
           borderBottom: '2px solid rgba(255,255,255,0.1)'
         }}>
-          🛡️ V4.16 - QR PIXEL PERFECT
+          🛡️ V4.17 - MARGEN MEDIANO QR
         </div>
         <div style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div style={{
