@@ -209,6 +209,29 @@ app.delete('/api/events/:id', (req, res) => {
   });
 });
 
+// Mass Link Template to Event Boletas
+app.put('/api/events/:id/link-template', (req, res) => {
+  const { id } = req.params;
+  const { templateId } = req.body;
+  
+  db.run('UPDATE boletas SET templateId = ? WHERE eventId = ?', [templateId, id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    
+    // Get event name for logging
+    const affectedRows = this.changes;
+    db.get('SELECT name FROM events WHERE id = ?', [id], (eErr, row) => {
+      const eventName = row ? row.name : 'Desconocido';
+      logActivity({ 
+        type: 'event_updated', 
+        message: `🔗 Vinculación Masiva: Diseño aplicado a ${affectedRows} boletas del evento ${eventName}`,
+        eventName: eventName,
+        details: JSON.stringify({ templateId, affectedRows })
+      });
+      res.json({ message: 'Diseño vinculado correctamente', affectedRows });
+    });
+  });
+});
+
 // Clients
 app.get('/api/clients', (req, res) => {
   db.all('SELECT c.*, (SELECT COUNT(id) FROM boletas WHERE clientId = c.id) as totalTickets FROM clients c', [], (err, rows) => {

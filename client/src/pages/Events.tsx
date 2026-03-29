@@ -80,6 +80,10 @@ const Events: React.FC = () => {
   const [currentEvent, setCurrentEvent] = useState<Partial<Event>>({ status: 'pendiente' });
   const [isEventBoletasOpen, setIsEventBoletasOpen] = useState(false);
   const [boletaEventContext, setBoletaEventContext] = useState<Event | null>(null);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [allTemplates, setAllTemplates] = useState<any[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [linking, setLinking] = useState(false);
 
   // 🛡️ CARGA ULTRA-RÁPIDA V4.14
   const fetchEvents = async () => {
@@ -159,9 +163,44 @@ const Events: React.FC = () => {
     setBoletaEventContext(event);
     setIsEventBoletasOpen(true);
   };
+  
+  const openLinkModal = async (event: Event) => {
+    setBoletaEventContext(event);
+    setLinking(false);
+    setIsLinkModalOpen(true);
+    try {
+      const res = await fetch(`${API_URL}/api/templates?compact=true`);
+      const data = await res.json();
+      setAllTemplates(Array.isArray(data) ? data : []);
+    } catch { 
+      setAllTemplates([]); 
+    }
+  };
 
-  const openDesign = (event: Event) => {
-    navigate(`/admin/plantilla?eventId=${event.id}`);
+  const handleMassLink = async () => {
+    if (!boletaEventContext || !selectedTemplateId) {
+      alert('Selecciona un diseño primero');
+      return;
+    }
+    setLinking(true);
+    try {
+      const res = await fetch(`${API_URL}/api/events/${boletaEventContext.id}/link-template`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: selectedTemplateId })
+      });
+      if (res.ok) {
+        alert('Vínculo masivo completado con éxito');
+        setIsLinkModalOpen(false);
+        fetchEvents();
+      } else {
+        alert('Error al vincular');
+      }
+    } catch {
+      alert('Error de conexión');
+    } finally {
+      setLinking(false);
+    }
   };
 
   const openBoleta = (event: Event) => {
@@ -222,7 +261,7 @@ const Events: React.FC = () => {
 
                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                   <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => handleEdit(event)}><Edit2 size={14} /> Editar</button>
-                  <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => openDesign(event)}><LayoutTemplate size={14} /> Diseño</button>
+                  <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => openLinkModal(event)}><LayoutTemplate size={14} /> Diseño</button>
                   <button className="btn btn-ghost" style={{ flex: '1 1 45%', height: '2.5rem', borderRadius: '0.6rem', fontSize: '0.75rem', padding: '0 0.5rem' }} onClick={() => openEventBoletas(event)}><Users size={14} /> Generar Boletos</button>
                   <button className="btn btn-ghost" style={{ width: '40px', padding: 0, color: '#dc2626', background: '#fef2f2', border: 'none' }} onClick={() => handleDelete(event.id)}><Trash2 size={16} /></button>
                 </div>
@@ -265,10 +304,48 @@ const Events: React.FC = () => {
         </div>
       </Modal>
 
-      <style>{`
-        .skeleton { background: #f1f5f9; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-      `}</style>
+      {/* LINK TEMPLATE MODAL */}
+      <Modal isOpen={isLinkModalOpen} onClose={() => setIsLinkModalOpen(false)} title="Vincular Diseño al Evento" maxWidth={500}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0' }}>
+            <p style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600, marginBottom: '0.75rem' }}>ELEGIR DISEÑO (PLANTILLA)</p>
+            <select 
+              className="input" 
+              value={selectedTemplateId} 
+              onChange={e => setSelectedTemplateId(e.target.value)}
+              style={{ background: '#fff' }}
+            >
+              <option value="">Selecciona una plantilla...</option>
+              {allTemplates.map(t => (
+                <option key={t.id} value={t.id}>{t.name} (ID: {t.id.slice(0,5)})</option>
+              ))}
+            </select>
+          </div>
+
+          <p style={{ fontSize: '0.85rem', color: '#64748b', textAlign: 'center', margin: 0 }}>
+            Esta acción vinculará el diseño seleccionado a <strong>todas las boletas existentes</strong> de este evento de forma masiva.
+          </p>
+
+          <Button 
+            onClick={handleMassLink} 
+            disabled={linking || !selectedTemplateId} 
+            style={{ height: '3.5rem', borderRadius: '1rem' }}
+          >
+            {linking ? <Loader2 className="spin" size={20} /> : <Plus size={20} />}
+            Vincular a todas las boletas
+          </Button>
+
+          <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+            <button 
+              className="btn btn-ghost" 
+              style={{ width: '100%', border: '1px dashed #cbd5e1' }}
+              onClick={() => navigate('/admin/plantilla')}
+            >
+              Ir al Editor de Diseños
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

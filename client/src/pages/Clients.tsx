@@ -8,6 +8,9 @@ import EmptyState from '../components/EmptyState';
 import { Users as UsersIcon } from 'lucide-react';
 
 const Clients: React.FC = () => {
+  const [clients, setClients] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [events, setEvents] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -419,10 +422,6 @@ const Clients: React.FC = () => {
         </div>
       </Modal>
 
-      <style>{`
-        .spin { animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 };

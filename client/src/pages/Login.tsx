@@ -185,7 +185,7 @@ const Login: React.FC = () => {
             </button>
           </form>
 
-            Copyright &copy; 2026 · Antigravity Systems
+            Copyright &copy; 2026 · JEOM
         </div>
       </div>
       <style>{`
