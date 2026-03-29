@@ -64,7 +64,7 @@ const TicketContent: React.FC<{
               zIndex: 100,
               background: '#fff',
               borderRadius: isPrint ? '6px' : '10px',
-              padding: '8%',
+              padding: '4%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -94,7 +94,7 @@ const TicketContent: React.FC<{
       
       {/* INDICADOR DE DESPLIEGUE SEGURO */}
       <div style={{ position: 'absolute', bottom: 5, right: 10, fontSize: '10px', color: '#16a34a', fontWeight: 900 }}>
-        V5.5 - QR CANAL SEGURO
+        V5.6 - QR SIZE OPTIMIZED
       </div>
     </div>
   );
@@ -133,7 +133,7 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
 
         pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width / 3, canvas.height / 3);
 
-        if (shouldShare && navigator.share) {
+        if (shouldShare && typeof navigator.share !== 'undefined') {
           const blob = pdf.output('blob');
           const file = new File([blob], `Ticket_${ticket.consecutivo}.pdf`, { type: 'application/pdf' });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
