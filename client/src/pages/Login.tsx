@@ -98,7 +98,7 @@ const Login: React.FC = () => {
           textTransform: 'uppercase',
           borderBottom: '2px solid rgba(255,255,255,0.1)'
         }}>
-          🛡️ V4.7 - LOGICA & UI ESTABILIZADA
+          🛡️ V4.8 - LOGICA INFALIBLE
         </div>
         <div style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div style={{

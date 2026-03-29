@@ -113,7 +113,6 @@ app.get('/api/activity', (req, res) => {
   });
 });
 
-
 app.put('/api/admin/credentials', (req, res) => {
   const { currentPassword, newUsername, newPassword } = req.body;
   db.get("SELECT * FROM users WHERE id = '1'", [], (err, row) => {
@@ -249,7 +248,7 @@ app.post('/api/clients', (req, res) => {
 });
 
 app.put('/api/clients/:id', (req, res) => {
-  const { name, email, addTickets, eventId, cedula } = req.body;
+  const { name, email, addTickets, eventId, cedula, templateId } = req.body;
   const { id } = req.params;
   
   db.run('UPDATE clients SET name = ?, email = ?, cedula = ? WHERE id = ?', [name, email, cedula, id], function(err) {
@@ -260,9 +259,9 @@ app.put('/api/clients/:id', (req, res) => {
     if (addTickets && addTickets > 0) {
       db.get('SELECT MAX(consecutivo) as max_cons FROM boletas', [], (err, row) => {
         let startConsecutive = (row && row.max_cons) ? row.max_cons + 1 : 1;
-        const stmt = db.prepare('INSERT INTO boletas (id, code, consecutivo, used, clientId, eventId) VALUES (?, ?, ?, 0, ?, ?)');
+        const stmt = db.prepare('INSERT INTO boletas (id, code, consecutivo, used, clientId, templateId, eventId) VALUES (?, ?, ?, 0, ?, ?, ?)');
         for(let i=0; i<addTickets; i++) {
-          stmt.run([crypto.randomUUID(), crypto.randomBytes(8).toString('hex'), startConsecutive + i, id, eventId || null]);
+          stmt.run([crypto.randomUUID(), crypto.randomBytes(8).toString('hex'), startConsecutive + i, id, templateId || null, eventId || null]);
         }
         stmt.finalize();
         logActivity({ type: 'client_updated', message: `Se agregaron ${addTickets} boletas a ${name}`, clientName: name });
@@ -391,60 +390,56 @@ app.delete('/api/boletas/:id', (req, res) => {
 });
 
 
-// Validar y consumir boleta (Scanner)
+// 🛡️ V4.8 - LOGICA DE ESCANEO ROBUSTA (ANTICORRUPCIÓN)
 app.post('/api/scan', (req, res) => {
   const { code } = req.body;
+  
+  // 1. Buscamos la boleta y su estado actual
   db.get('SELECT b.*, c.name as clientName, e.name as eventName FROM boletas b LEFT JOIN clients c ON b.clientId = c.id LEFT JOIN events e ON b.eventId = e.id WHERE b.code = ?', [code], (err, row) => {
     if (!row) {
       logActivity({ type: 'scan_failed', message: `❌ Código Inválido: ${code}`, details: code });
       db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [code, 'no_valida', new Date().toISOString()]);
       return res.status(404).json({ valid: false, message: 'Boleta no encontrada / Inválida' });
     }
-    if (row.used) {
+    
+    // 2. Si ya fue usada, devolvemos error inmediatamente (Verificación directa del campo 'used')
+    if (row.used === 1) {
       logActivity({ 
         type: 'scan_failed', 
         message: `⚠️ Intento Fallido: Boleta #${row.consecutivo} ya usada`, 
         consecutivo: row.consecutivo, 
         clientName: row.clientName, 
-        eventName: row.eventName, 
-        details: row.id 
+        eventName: row.eventName 
       });
       db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [row.id, 'ya_usada', new Date().toISOString()]);
-      return res.json({ valid: false, used: true, message: 'Boleta ya utilizada' });
+      return res.json({ valid: false, used: true, message: 'Boleta ya utilizada anteriormente' });
     }
     
-    // Mark as used atomically
-    db.run('UPDATE boletas SET used = 1, fecha_uso = ? WHERE id = ? AND used = 0', [new Date().toISOString(), row.id], function(err) {
-      if(err) return res.status(500).json({error: err.message});
-      if (this.changes === 0) {
-        logActivity({ 
-          type: 'scan_failed', 
-          message: `⚠️ Intento Fallido: Boleta #${row.consecutivo} ya usada`, 
-          consecutivo: row.consecutivo, 
-          clientName: row.clientName, 
-          eventName: row.eventName, 
-          details: row.id 
-        });
-        db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [row.id, 'ya_usada', new Date().toISOString()]);
-        return res.json({ valid: false, used: true, message: 'Boleta ya utilizada' });
+    // 3. Mark as used - NO CONFIAMOS EN THIS.CHANGES
+    // Simplemente ejecutamos el UPDATE y si no hay error de base de datos, procedemos.
+    const usageTime = new Date().toISOString();
+    db.run('UPDATE boletas SET used = 1, fecha_uso = ? WHERE id = ?', [usageTime, row.id], (updErr) => {
+      if (updErr) {
+        console.error('Update error in scan:', updErr.message);
+        return res.status(500).json({ error: 'Error al procesar la boleta' });
       }
       
+      // 4. Éxito confirmado por lógica de flujo (Si llegó aquí y used era 0, ahora es 1)
       logActivity({ 
         type: 'scan_success', 
         message: `Acceso Concedido: ${row.clientName}`, 
         consecutivo: row.consecutivo, 
         clientName: row.clientName, 
-        eventName: row.eventName, 
-        details: row.id 
+        eventName: row.eventName 
       });
-      db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [row.id, 'valida', new Date().toISOString()]);
+      db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [row.id, 'valida', usageTime]);
       
       res.json({ 
         valid: true, 
         message: 'Boleta válida',
         ticket: {
           consecutivo: row.consecutivo,
-          fecha_uso: new Date().toISOString(),
+          fecha_uso: usageTime,
           client: { name: row.clientName }
         }
       });
