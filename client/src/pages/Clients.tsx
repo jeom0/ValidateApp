@@ -163,7 +163,7 @@ const Clients: React.FC = () => {
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button className="btn btn-ghost" onClick={() => window.location.href = `${API_URL}/api/reports/all-boletas`} style={{ padding: '0.75rem 1.25rem', height: '3.25rem', border: '1px solid #eee' }}>
-            <Download size={18} /> <span>Informe CSV</span>
+            <Download size={18} /> <span>Informe Excel</span>
           </button>
           <button className="btn btn-primary" onClick={() => setIsAddOpen(true)} style={{ padding: '0.75rem 1.5rem', height: '3.25rem' }}>
             <UserPlus size={18} /> <span>Nuevo Cliente</span>

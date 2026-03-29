@@ -256,7 +256,9 @@ app.get('/api/clients/:id/boletas', (req, res) => {
   });
 });
 
-// REPORT: Export all boletas to CSV
+const XLSX = require('xlsx');
+
+// REPORT: Export all boletas to Excel (.xlsx)
 app.get('/api/reports/all-boletas', (req, res) => {
   const query = `
     SELECT b.consecutivo, 
@@ -276,19 +278,35 @@ app.get('/api/reports/all-boletas', (req, res) => {
   db.all(query, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     
-    // Build CSV manually
-    let csv = "\uFEFF"; // UTF-8 BOM for Excel
-    csv += "Consecutivo,Cliente,Cedula,Evento,Tipo de Boleta,Estado,Fecha de Escaneo\n";
+    // Transform data for Excel
+    const data = rows.map(r => ({
+      "Consecutivo": r.consecutivo,
+      "Cliente": r.clientName,
+      "Identificación": r.cedula,
+      "Evento": r.eventName,
+      "Tipo de Boleta": r.templateName || "Estándar",
+      "Estado": r.used ? "ESCANEADA" : "SIN ESCANEAR",
+      "Fecha Escaneo": r.fecha_uso || "---"
+    }));
+
+    // Create Excel Workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
     
-    rows.forEach(r => {
-      const estado = r.used ? "ESCANEADA" : "SIN ESCANEAR";
-      const fecha = r.fecha_uso || "---";
-      csv += `${r.consecutivo},"${r.clientName}","${r.cedula}","${r.eventName}","${r.templateName}",${estado},${fecha}\n`;
-    });
+    // Auto-size columns (optional but good)
+    const wscols = [
+      {wch: 12}, {wch: 30}, {wch: 15}, {wch: 30}, {wch: 25}, {wch: 15}, {wch: 25}
+    ];
+    ws['!cols'] = wscols;
+
+    XLSX.utils.book_append_sheet(wb, ws, "Boletas");
     
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=informe_boletas.csv');
-    res.status(200).send(csv);
+    // Generate Buffer
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=Informe_Boletas_ValidateApp.xlsx');
+    res.status(200).send(buf);
   });
 });
 
