@@ -215,8 +215,8 @@ const TemplateEditor: React.FC = () => {
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.5rem' }}>{t.name}</h3>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 800 }}>
-                  <Calendar size={14} /> {t.eventName || 'Borrador'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 800, background: '#eff6ff', padding: '0.25rem 0.5rem', borderRadius: '0.5rem' }}>
+                  <Calendar size={14} /> {t.eventName || 'Sin vincular'}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontSize: '0.8rem', fontWeight: 800 }}>
                   <Ticket size={14} /> {t.clientCount || 0} boletas
@@ -241,9 +241,14 @@ const TemplateEditor: React.FC = () => {
               <input className="input" value={activeTemplate.name} onChange={e => setActiveTemplate({ ...activeTemplate, name: e.target.value })} placeholder="Ej: General, VIP..." />
             </div>
             <div style={{ flex: 1 }}>
-              <label className="input-label">Evento Relacionado</label>
-              <select className="input" value={activeTemplate.eventId || ''} onChange={e => setActiveTemplate({ ...activeTemplate, eventId: e.target.value })}>
-                <option value="">Seleccionar Evento...</option>
+              <label className="input-label">Vincular a Evento</label>
+              <select 
+                className="input" 
+                style={{ border: activeTemplate.eventId ? '2px solid #3b82f6' : '1px solid #e2e8f0' }}
+                value={activeTemplate.eventId || ''} 
+                onChange={e => setActiveTemplate({ ...activeTemplate, eventId: e.target.value })}
+              >
+                <option value="">-- No vincular --</option>
                 {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
               </select>
             </div>
