@@ -16,9 +16,9 @@ export interface TicketPreviewRef {
 }
 
 /**
- * 🚀 VERSION 4.5 - DISEÑO PREMIUM + ADJUNTO PDF REAL
- * QR Proporcional con fondo blanco redondeado y sombreado sutil.
- */
+ * 🚀 VERSION 4.6 - SIN FALLO: PRE-CARGA DE IMAGEN + SHARE ROBUSTO
+ * QR Proporcional con fondo blanco redondeado.
+ **/
 const TicketContent: React.FC<{
   ticket: any;
   template: any;
@@ -30,6 +30,7 @@ const TicketContent: React.FC<{
 
   return (
     <div
+      id={isPrint ? "print-ticket-container" : undefined}
       style={{
         position: 'relative',
         width,
@@ -67,8 +68,8 @@ const TicketContent: React.FC<{
               justifyContent: 'center',
               aspectRatio: '1/1',
               background: '#fff',
-              borderRadius: '12px', // Bordes redondeados sutiles
-              padding: '4%', // Padding para que no toque los bordes
+              borderRadius: '12px',
+              padding: '4%',
               boxShadow: isPrint ? 'none' : '0 10px 30px rgba(0,0,0,0.1)'
             }}
           >
@@ -118,72 +119,92 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
       setDownloading(true);
 
       try {
-        await new Promise(r => setTimeout(r, 400));
+        // --- PRE-CARGA DE IMAGEN ANTI-DESPLAZAMIENTO ---
+        // Forzamos la carga completa de la imagen antes de capturar el canvas
+        if (template && template.imageUrl) {
+          await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = template.imageUrl;
+          });
+        }
+
+        // Breve pausa para asegurar renderizado de dom
+        await new Promise(r => setTimeout(r, 600));
+
         const canvas = await html2canvas(printRef.current, {
           useCORS: true,
           scale: 3,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          logging: false,
+          allowTaint: true
         });
 
         const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        
+        // Calculamos las dimensiones del PDF basadas en el canvas real (para escala 1:1)
+        const pdfWidth = canvas.width / 3;
+        const pdfHeight = canvas.height / 3;
+
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'px',
-          format: [canvas.width / 3, canvas.height / 3]
+          format: [pdfWidth, pdfHeight]
         });
 
-        pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width / 3, canvas.height / 3);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
         if (shouldShare && typeof navigator.share !== 'undefined') {
           const blob = pdf.output('blob');
-          const fileName = `Boleta_${ticket.consecutivo}.pdf`;
-          const file = new File([blob], fileName, { type: 'application/pdf' });
+          const file = new File([blob], `Boleta_${ticket.consecutivo}.pdf`, { type: 'application/pdf' });
 
-          // Intentamos compartir el ARCHIVO real
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          // COMPARTIR ARCHIVO (Priorizamos el envío puro de archivo para evitar bloqueos en WhatsApp/Social)
+          const shareData: ShareData = {
+            files: [file]
+            // Quitamos 'title' y 'text' para que el archivo sea el protagonista absoluto
+          };
+
+          if (navigator.canShare && navigator.canShare(shareData)) {
             try {
-              await navigator.share({
-                files: [file],
-                title: 'Tu Boleta Digital 🎫',
-                text: `Hola ${client.name}, aquí tienes tu entrada para el evento.`
-              });
+              await navigator.share(shareData);
               setDownloading(false);
               return;
             } catch (shareErr) {
-              console.warn("Share failed, falling back to download", shareErr);
+              console.warn("Navigator.share interceptado/fallido, usando descarga:", shareErr);
             }
           }
         }
         
-        // Descarga normal si falla el share o no es share
         pdf.save(`Boleta_${ticket.consecutivo}.pdf`);
       } catch (err) {
-        console.error(err);
-        alert('Error al generar el PDF.');
+        console.error("Error en downloadPDF:", err);
+        alert('Error al generar la boleta. Por favor reintenta.');
       }
       setDownloading(false);
     };
 
-    const shareWhatsApp = () => {
+    const shareWhatsAppRaw = () => {
       const text = `Hola ${client.name},\nAquí tienes tu entrada digital 🎫\n\nTicket #${ticket.consecutivo}\nRef: ${ticket.code?.slice(0, 8)}\n\n¡Te esperamos!`;
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
 
     return (
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
-        {/* VISTA PREVIA (SE ADAPTA A LA PANTALLA) */}
+        {/* VISTA PREVIA WEB */}
         <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
           <TicketContent ticket={ticket} template={template} />
         </div>
 
-        {/* GENERADOR PDF OCULTO (TAMAÑO FIJO 600px PARA ALTA CALIDAD) */}
-        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        {/* GENERADOR PDF DEFINITIVO (600px FIJOS) */}
+        <div style={{ position: 'absolute', left: '-9999px', top: -9999, pointerEvents: 'none' }}>
           <div ref={printRef} style={{ width: '600px' }}>
             <TicketContent ticket={ticket} template={template} width={600} isPrint={true} />
           </div>
         </div>
 
-        {/* ACCIONES */}
+        {/* ACCIONES FINALIZADAS */}
         <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '420px' }}>
           <button
             onClick={() => downloadPDF(false)}
@@ -201,7 +222,7 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
               boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
             }}
           >
-            {downloading ? 'Generando...' : 'Descargar PDF'}
+            {downloading ? 'Capturando...' : 'Descargar PDF'}
           </button>
 
           {typeof navigator.share !== 'undefined' && (
@@ -220,14 +241,14 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
                 cursor: 'pointer',
                 boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)'
               }}
-              title="Compartir Archivo PDF"
+              title="Adjuntar PDF (Móvil)"
             >
               <Share2 size={24} />
             </button>
           )}
 
           <button
-            onClick={shareWhatsApp}
+            onClick={shareWhatsAppRaw}
             style={{
               width: '4rem',
               height: '4rem',
@@ -241,7 +262,7 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
               cursor: 'pointer',
               boxShadow: '0 10px 25px rgba(37, 211, 102, 0.3)'
             }}
-            title="Enviar Texto por WhatsApp"
+            title="Enviar Texto WhatsApp"
           >
             <Send size={24} />
           </button>
