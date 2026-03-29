@@ -206,6 +206,10 @@ db.serialize(() => {
   db.run(`ALTER TABLE boletas ADD COLUMN eventId TEXT`);
   db.run(`ALTER TABLE clients ADD COLUMN cedula TEXT`);
   db.run(`ALTER TABLE templates ADD COLUMN eventId TEXT`);
+  db.run(`ALTER TABLE templates ADD COLUMN qrX REAL`);
+  db.run(`ALTER TABLE templates ADD COLUMN qrY REAL`);
+  db.run(`ALTER TABLE templates ADD COLUMN qrWidth REAL`);
+  db.run(`ALTER TABLE templates ADD COLUMN qrHeight REAL`);
   db.run(`ALTER TABLE events ADD COLUMN location TEXT`);
 
   // Seed admin user

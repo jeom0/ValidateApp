@@ -114,6 +114,8 @@ body {
   margin-left: var(--sidebar-width);
   padding: 3rem;
   min-height: 100vh;
+  min-width: 0; /* prevent flex overflow */
+  overflow-x: hidden;
 }
 
 .container {
@@ -256,7 +258,7 @@ body {
 
 table {
   width: 100%;
-  min-width: 580px;
+  min-width: 520px;
   border-collapse: separate;
   border-spacing: 0 0.625rem;
 }
@@ -433,17 +435,57 @@ table {
 
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .events-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .modal-box {
+    border-radius: var(--radius-xl);
+  }
 }
 
 @media (max-width: 640px) {
-  .main-content { padding: 4.5rem 1rem 1.5rem; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.875rem; }
+  .main-content { padding: 4.5rem 1rem 2rem; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
   .events-grid { grid-template-columns: 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
   .card { padding: 1.25rem; }
+
+  /* Modal full-screen on mobile */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal-box {
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    max-height: 92vh;
+  }
+
+  /* Prevent activity items from wrapping badly */
+  .activity-time { display: none; }
+
+  /* Table horizontal scroll hint */
+  .table-wrap {
+    border-radius: var(--radius-md);
+    box-shadow: inset -8px 0 12px rgba(0,0,0,0.04);
+  }
+
+  /* Buttons full width on mobile forms */
+  .btn-mobile-full { width: 100%; }
+}
+
+@media (max-width: 400px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .card { padding: 1rem; }
+  .main-content { padding: 4.5rem 0.75rem 1.5rem; }
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+
+/* Visibility Helpers */
+.show-mobile { display: none; }
+.show-mobile-cell { display: none !important; }
+
+@media (max-width: 640px) {
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: inline-flex !important; }
+  .hide-mobile-cell { display: none !important; }
+  .show-mobile-cell { display: block !important; }
+}

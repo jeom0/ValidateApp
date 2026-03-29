@@ -4,6 +4,8 @@ import { Modal } from '../components/Modal';
 import { Search, Edit2, Trash2, Ticket, ChevronRight, UserPlus, Plus, Minus, Calendar, CheckCircle2 } from 'lucide-react';
 import TicketPreview from '../components/TicketPreview';
 import Stepper from '../components/Stepper';
+import EmptyState from '../components/EmptyState';
+import { Users as UsersIcon } from 'lucide-react';
 
 const Clients: React.FC = () => {
   const [clients, setClients] = useState<any[]>([]);
@@ -146,57 +148,94 @@ const Clients: React.FC = () => {
     (c.cedula && c.cedula.toLowerCase().includes(search.toLowerCase()))
   );
 
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-0.04em' }}>Clientes</h1>
-          <p style={{ color: '#6b7280', fontWeight: 500 }}>Gestiona la base de datos de asistentes.</p>
+          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', fontWeight: 900, letterSpacing: '-0.04em', margin: 0 }}>Clientes</h1>
+          <p style={{ color: '#6b7280', fontWeight: 500, margin: '0.25rem 0 0' }}>Gestiona la base de datos de asistentes.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsAddOpen(true)}>
-          <UserPlus size={18} /> Nuevo Cliente
+        <button className="btn btn-primary" onClick={() => setIsAddOpen(true)} style={{ padding: '0.75rem 1.5rem' }}>
+          <UserPlus size={18} /> <span className="hide-mobile">Nuevo Cliente</span><span className="show-mobile">Nuevo</span>
         </button>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>
-          <input 
-            className="input" 
-            placeholder="Buscar por nombre, cédula o correo..." 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-          />
-        </div>
-        <div className="table-wrap" style={{ padding: '0.5rem 1rem 1rem' }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Cédula</th>
-                <th>Boletas</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(c => (
-                <tr key={c.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>{c.name?.charAt(0).toUpperCase()}</div>
-                      <span style={{ fontWeight: 700 }}>{c.name}</span>
-                    </div>
-                  </td>
-                  <td style={{ color: '#6b7280' }}>{c.cedula || '—'}</td>
-                  <td><span className="badge badge-gray">{c.totalTickets || 0} boletas</span></td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button className="btn btn-ghost" onClick={() => openDetail(c)}>Gestionar <ChevronRight size={14} /></button>
-                  </td>
+      {clients.length === 0 ? (
+        <EmptyState 
+          icon={UsersIcon}
+          title="Este sitio se siente muy solo"
+          description="Parece que aún no has registrado clientes. Empieza agregando el primero para emitir boletas."
+          action={{
+            label: "Registrar mi primer cliente",
+            onClick: () => setIsAddOpen(true)
+          }}
+        />
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+              <input 
+                className="input" 
+                placeholder="Buscar por nombre, cédula o correo..." 
+                value={search} 
+                onChange={e => setSearch(e.target.value)} 
+                style={{ paddingLeft: '2.75rem' }}
+              />
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table style={{ minWidth: '600px' }}>
+              <thead>
+                <tr>
+                  <th style={{ paddingLeft: '1.5rem' }}>Cliente</th>
+                  <th>Cédula</th>
+                  <th>Boletas</th>
+                  <th style={{ paddingRight: '1.5rem', textAlign: 'right' }}>Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '3rem', color: '#6b7280', fontWeight: 600 }}>
+                      No se encontraron resultados para "{search}"
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map(c => (
+                    <tr key={c.id}>
+                      <td style={{ paddingLeft: '1.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ 
+                            width: 36, height: 36, borderRadius: '12px', 
+                            background: 'linear-gradient(135deg, #000 0%, #333 100%)', 
+                            color: '#fff', display: 'flex', alignItems: 'center', 
+                            justifyContent: 'center', fontWeight: 800, fontSize: '0.875rem' 
+                          }}>
+                            {c.name?.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{c.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }} className="show-mobile-cell">{c.cedula}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="hide-mobile-cell" style={{ color: '#4b5563', fontWeight: 500 }}>{c.cedula || '—'}</td>
+                      <td><span className="badge badge-gray" style={{ background: '#f3f4f6', color: '#374151' }}>{c.totalTickets || 0} boletas</span></td>
+                      <td style={{ textAlign: 'right', paddingRight: '1.5rem' }}>
+                        <button className="btn btn-ghost" onClick={() => openDetail(c)} style={{ padding: '0.5rem 0.75rem' }}>
+                          <span className="hide-mobile">Gestionar</span> <ChevronRight size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* DETAIL Modal */}
       <Modal isOpen={isDetailOpen && !!selectedClient} onClose={() => setIsDetailOpen(false)} title="Detalle del Cliente">
@@ -213,18 +252,20 @@ const Clients: React.FC = () => {
                 <input className="input" value={editCedula} onChange={e => setEditCedula(e.target.value)} placeholder="Cédula" />
                 <input className="input" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Correo" />
                 
-                <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '1rem', border: '1px solid #eee' }}>
-                  <label className="input-label">Agregar Boletas</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', alignItems: 'center' }}>
+                <div style={{ padding: '1.25rem', background: '#f9fafb', borderRadius: '1.25rem', border: '1px solid #eee' }}>
+                  <label className="input-label" style={{ marginBottom: '0.75rem' }}>Agregar Boletas</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <Stepper value={addTickets} onChange={n => { setAddTickets(n); if (n === 0) setAddEventError(false); }} min={0} max={100} />
-                    <select className="input" value={addEventId} onChange={e => setAddEventId(e.target.value)} style={{ cursor: 'pointer', height: '3rem' }}>
-                      <option value="">— Evento —</option>
-                      {events.map((ev: any) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-                    </select>
-                    <select className="input" value={addTemplateId} onChange={e => setAddTemplateId(e.target.value)} style={{ cursor: 'pointer', height: '3rem' }}>
-                      <option value="">— Diseño —</option>
-                      {templates.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <select className="input" value={addEventId} onChange={e => setAddEventId(e.target.value)} style={{ cursor: 'pointer' }}>
+                        <option value="">— Evento —</option>
+                        {events.map((ev: any) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                      </select>
+                      <select className="input" value={addTemplateId} onChange={e => setAddTemplateId(e.target.value)} style={{ cursor: 'pointer' }}>
+                        <option value="">— Diseño —</option>
+                        {templates.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -234,10 +275,19 @@ const Clients: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-                <button className="btn" style={{ background: '#eff6ff', color: '#2563eb', padding: '1rem', flexDirection: 'column' }} onClick={openBoletas}><Ticket /> Boletas</button>
-                <button className="btn" style={{ background: '#f3f4f6', color: '#374151', padding: '1rem', flexDirection: 'column' }} onClick={() => setIsEditing(true)}><Edit2 /> Editar</button>
-                <button className="btn" style={{ background: '#fef2f2', color: '#dc2626', padding: '1rem', flexDirection: 'column' }} onClick={() => handleDeleteClient(selectedClient.id, selectedClient.name)}><Trash2 /> Eliminar</button>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.75rem' }}>
+                <button className="btn" style={{ background: '#eff6ff', color: '#2563eb', padding: '1.25rem 0.75rem', flexDirection: 'column', borderRadius: '1.25rem' }} onClick={openBoletas}>
+                  <Ticket size={24} style={{ marginBottom: '0.5rem' }} /> 
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800 }}>Boletas</span>
+                </button>
+                <button className="btn" style={{ background: '#f3f4f6', color: '#374151', padding: '1.25rem 0.75rem', flexDirection: 'column', borderRadius: '1.25rem' }} onClick={() => setIsEditing(true)}>
+                  <Edit2 size={24} style={{ marginBottom: '0.5rem' }} /> 
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800 }}>Editar</span>
+                </button>
+                <button className="btn" style={{ background: '#fef2f2', color: '#dc2626', padding: '1.25rem 0.75rem', flexDirection: 'column', borderRadius: '1.25rem' }} onClick={() => handleDeleteClient(selectedClient.id, selectedClient.name)}>
+                  <Trash2 size={24} style={{ marginBottom: '0.5rem' }} /> 
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800 }}>Eliminar</span>
+                </button>
               </div>
             )}
           </div>

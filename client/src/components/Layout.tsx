@@ -7,7 +7,7 @@ export const Layout: React.FC = () => {
   const [open, setOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('admin_auth');
     navigate('/login');
   };
 
@@ -60,7 +60,7 @@ export const Layout: React.FC = () => {
 
       {/* Main */}
       <main className="main-content">
-        <div className="container fade-in">
+        <div className="container fade-in" style={{ overflowX: 'hidden' }}>
           <Outlet />
         </div>
       </main>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { API_URL } from '../config';
 import { QRCodeSVG } from 'qrcode.react';
@@ -21,7 +21,7 @@ interface Template {
 }
 
 const defaultTemplate: Template = {
-  id: '', name: '', imageUrl: '', qrX: 50, qrY: 50, qrWidth: 120, qrHeight: 120
+  id: '', name: '', imageUrl: '', qrX: 10, qrY: 10, qrWidth: 20, qrHeight: 20
 };
 
 const TemplateEditor: React.FC = () => {
@@ -33,6 +33,7 @@ const TemplateEditor: React.FC = () => {
   const [message, setMessage] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchTemplates = async () => {
     setLoading(true);
@@ -298,38 +299,67 @@ const TemplateEditor: React.FC = () => {
             }}
           >
             {activeTemplate.imageUrl ? (
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img
-                  src={activeTemplate.imageUrl}
-                  alt="Fondo Boleta"
-                  className="canvas-img"
-                  style={{ maxWidth: '100%', maxHeight: '550px', display: 'block', borderRadius: '1rem' }}
-                  draggable={false}
-                />
-                <Rnd
-                  size={{ width: activeTemplate.qrWidth, height: activeTemplate.qrHeight }}
-                  position={{ x: activeTemplate.qrX, y: activeTemplate.qrY }}
-                  onDragStop={(_e, d) => setActiveTemplate(prev => ({ ...prev, qrX: d.x, qrY: d.y }))}
-                  onResizeStop={(_e, _dir, ref, _delta, position) =>
-                    setActiveTemplate(prev => ({ ...prev, qrWidth: parseInt(ref.style.width), qrHeight: parseInt(ref.style.height), ...position }))
-                  }
-                  bounds="parent"
-                  style={{
-                    border: '2.5px solid #16a34a',
-                    background: 'rgba(255,255,255,0.92)',
-                    borderRadius: '0.625rem',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                    backdropFilter: 'blur(4px)',
-                    zIndex: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+                <div 
+                  ref={containerRef}
+                  id="template-container"
+                  style={{ position: 'relative', display: 'inline-block' }}
                 >
-                  <div style={{ width: '80%', height: '80%' }}>
-                    <QRCodeSVG value="MOCK-QR-PREVIEW" style={{ width: '100%', height: '100%' }} />
-                  </div>
-                </Rnd>
+                  <img
+                    src={activeTemplate.imageUrl}
+                    alt="Fondo Boleta"
+                    className="canvas-img"
+                    style={{ maxWidth: '100%', maxHeight: '550px', display: 'block', borderRadius: '1rem' }}
+                    draggable={false}
+                  />
+                  <Rnd
+                    lockAspectRatio={true}
+                    size={{ 
+                      width: (activeTemplate.qrWidth / 100) * (containerRef.current?.offsetWidth || 1) || 120, 
+                      height: (activeTemplate.qrHeight / 100) * (containerRef.current?.offsetHeight || 1) || 120 
+                    }}
+                    position={{ 
+                      x: (activeTemplate.qrX / 100) * (containerRef.current?.offsetWidth || 1), 
+                      y: (activeTemplate.qrY / 100) * (containerRef.current?.offsetHeight || 1) 
+                    }}
+                    onDragStop={(_e, d) => {
+                      if (containerRef.current) {
+                        const xPct = (d.x / containerRef.current.offsetWidth) * 100;
+                        const yPct = (d.y / containerRef.current.offsetHeight) * 100;
+                        setActiveTemplate(prev => ({ ...prev, qrX: xPct, qrY: yPct }));
+                      }
+                    }}
+                    onResizeStop={(_e, _dir, ref, _delta, position) => {
+                      if (containerRef.current) {
+                        const wPct = (parseInt(ref.style.width) / containerRef.current.offsetWidth) * 100;
+                        const hPct = (parseInt(ref.style.height) / containerRef.current.offsetHeight) * 100;
+                        const xPct = (position.x / containerRef.current.offsetWidth) * 100;
+                        const yPct = (position.y / containerRef.current.offsetHeight) * 100;
+                        setActiveTemplate(prev => ({ 
+                          ...prev, 
+                          qrWidth: wPct, 
+                          qrHeight: hPct, 
+                          qrX: xPct, 
+                          qrY: yPct 
+                        }));
+                      }
+                    }}
+                    bounds="parent"
+                    style={{
+                      border: '2.5px solid #16a34a',
+                      background: '#fff',
+                      borderRadius: '0.625rem',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                      zIndex: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '8px'
+                    }}
+                  >
+                    <div style={{ width: '100%', height: '100%' }}>
+                      <QRCodeSVG value="MOCK-QR-PREVIEW" style={{ width: '100%', height: '100%' }} />
+                    </div>
+                  </Rnd>
               </div>
             ) : (
               <div
