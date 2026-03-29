@@ -144,9 +144,14 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
         }
         
         pdf.save(`Ticket_${ticket.consecutivo}.pdf`);
-      } catch (err) {
-        console.error("Error PDF:", err);
-        alert('Error al generar el PDF.');
+      } catch (err: any) {
+        // 🤫 SILENCIAR ABORTERROR (Si el usuario cancela la acción de compartir)
+        if (err.name === 'AbortError') {
+          console.log("Compartir cancelado por el usuario.");
+        } else {
+          console.error("Error PDF:", err);
+          alert('Error al generar el PDF.');
+        }
       }
       setDownloading(false);
     };
