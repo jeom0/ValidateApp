@@ -1,6 +1,6 @@
 import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Download, Send, Share2 } from 'lucide-react';
+import { Download, Share2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -16,8 +16,8 @@ export interface TicketPreviewRef {
 }
 
 /**
- * 🚀 VERSION 4.6 - SIN FALLO: PRE-CARGA DE IMAGEN + SHARE ROBUSTO
- * QR Proporcional con fondo blanco redondeado.
+ * 🚀 VERSION 4.9 - PDF PIXEL-PERFECT + UI LIMPIA
+ * Ajusta el contenedor a la forma exacta de la imagen para evitar desplazamientos.
  **/
 const TicketContent: React.FC<{
   ticket: any;
@@ -30,11 +30,10 @@ const TicketContent: React.FC<{
 
   return (
     <div
-      id={isPrint ? "print-ticket-container" : undefined}
       style={{
         position: 'relative',
-        width,
-        maxWidth: isPrint ? '600px' : '420px',
+        width: isPrint ? '100%' : width, // Si es para imprimir, dejamos que el padre controle el tamaño
+        maxWidth: isPrint ? 'none' : '420px',
         margin: '0 auto',
         borderRadius: isPrint ? 0 : '1.5rem',
         overflow: 'hidden',
@@ -68,7 +67,7 @@ const TicketContent: React.FC<{
               justifyContent: 'center',
               aspectRatio: '1/1',
               background: '#fff',
-              borderRadius: '12px',
+              borderRadius: isPrint ? '8px' : '12px',
               padding: '4%',
               boxShadow: isPrint ? 'none' : '0 10px 30px rgba(0,0,0,0.1)'
             }}
@@ -119,52 +118,60 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
       setDownloading(true);
 
       try {
-        // --- PRE-CARGA DE IMAGEN ANTI-DESPLAZAMIENTO ---
-        // Forzamos la carga completa de la imagen antes de capturar el canvas
+        // --- 🎯 PASO 1: DETECCIÓN DE PROPORCIONES REALES ---
+        // Obtenemos el ancho y alto real de la imagen para que el PDF calce perfecto
+        let finalWidth = 600;
+        let finalHeight = 800;
+
         if (template && template.imageUrl) {
-          await new Promise((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.onload = resolve;
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          const promise = new Promise((resolve, reject) => {
+            img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
             img.onerror = reject;
-            img.src = template.imageUrl;
           });
+          img.src = template.imageUrl;
+          const dims: any = await promise;
+          
+          // Escalamos a un ancho base de 800px manteniendo la proporción exacta
+          finalWidth = 800;
+          finalHeight = Math.round(800 * (dims.h / dims.w));
         }
 
-        // Breve pausa para asegurar renderizado de dom
-        await new Promise(r => setTimeout(r, 600));
+        // --- 🎯 PASO 2: AJUSTE DINÁMICO DEL CONTENEDOR ---
+        if (printRef.current) {
+          printRef.current.style.width = `${finalWidth}px`;
+          printRef.current.style.height = `${finalHeight}px`;
+        }
+
+        // Breve pausa para asegurar el re-renderizado
+        await new Promise(r => setTimeout(r, 800));
 
         const canvas = await html2canvas(printRef.current, {
           useCORS: true,
-          scale: 3,
-          backgroundColor: '#ffffff',
+          scale: 2, // Bajamos la escala ligeramente para procesos más rápidos en móvil
+          backgroundColor: null, // Evita bordes blancos extra
           logging: false,
-          allowTaint: true
+          width: finalWidth,
+          height: finalHeight
         });
 
-        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
         
-        // Calculamos las dimensiones del PDF basadas en el canvas real (para escala 1:1)
-        const pdfWidth = canvas.width / 3;
-        const pdfHeight = canvas.height / 3;
-
+        // El PDF debe tener exactamente el mismo formato que el canvas
         const pdf = new jsPDF({
-          orientation: 'portrait',
+          orientation: finalHeight > finalWidth ? 'portrait' : 'landscape',
           unit: 'px',
-          format: [pdfWidth, pdfHeight]
+          format: [finalWidth, finalHeight]
         });
 
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        pdf.addImage(imgData, 'JPEG', 0, 0, finalWidth, finalHeight);
 
         if (shouldShare && typeof navigator.share !== 'undefined') {
           const blob = pdf.output('blob');
           const file = new File([blob], `Boleta_${ticket.consecutivo}.pdf`, { type: 'application/pdf' });
-
-          // COMPARTIR ARCHIVO (Priorizamos el envío puro de archivo para evitar bloqueos en WhatsApp/Social)
-          const shareData: ShareData = {
-            files: [file]
-            // Quitamos 'title' y 'text' para que el archivo sea el protagonista absoluto
-          };
+          
+          const shareData: ShareData = { files: [file] };
 
           if (navigator.canShare && navigator.canShare(shareData)) {
             try {
@@ -172,7 +179,7 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
               setDownloading(false);
               return;
             } catch (shareErr) {
-              console.warn("Navigator.share interceptado/fallido, usando descarga:", shareErr);
+              console.warn("Navigator.share interceptado:", shareErr);
             }
           }
         }
@@ -180,31 +187,27 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
         pdf.save(`Boleta_${ticket.consecutivo}.pdf`);
       } catch (err) {
         console.error("Error en downloadPDF:", err);
-        alert('Error al generar la boleta. Por favor reintenta.');
+        alert('Error al generar la boleta. Reintenta.');
       }
       setDownloading(false);
     };
 
-    const shareWhatsAppRaw = () => {
-      const text = `Hola ${client.name},\nAquí tienes tu entrada digital 🎫\n\nTicket #${ticket.consecutivo}\nRef: ${ticket.code?.slice(0, 8)}\n\n¡Te esperamos!`;
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    };
-
     return (
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
-        {/* VISTA PREVIA WEB */}
+        {/* VISTA PREVIA WEB PROPORCIONAL */}
         <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
           <TicketContent ticket={ticket} template={template} />
         </div>
 
-        {/* GENERADOR PDF DEFINITIVO (600px FIJOS) */}
-        <div style={{ position: 'absolute', left: '-9999px', top: -9999, pointerEvents: 'none' }}>
-          <div ref={printRef} style={{ width: '600px' }}>
-            <TicketContent ticket={ticket} template={template} width={600} isPrint={true} />
+        {/* 🪄 CONTENEDOR DE CAPTURA INTELIGENTE (OCULTO) 
+            Su tamaño se ajustará dinámicamente en downloadPDF */}
+        <div style={{ position: 'absolute', left: '-5000px', top: -5000, pointerEvents: 'none' }}>
+          <div ref={printRef} style={{ background: '#fff' }}>
+            <TicketContent ticket={ticket} template={template} isPrint={true} />
           </div>
         </div>
 
-        {/* ACCIONES FINALIZADAS */}
+        {/* ACCIONES REFINADAS (SIN BOTÓN VERDE) */}
         <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '420px' }}>
           <button
             onClick={() => downloadPDF(false)}
@@ -222,7 +225,7 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
               boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
             }}
           >
-            {downloading ? 'Capturando...' : 'Descargar PDF'}
+            {downloading ? 'Generando...' : 'Descargar PDF'}
           </button>
 
           {typeof navigator.share !== 'undefined' && (
@@ -246,26 +249,6 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(
               <Share2 size={24} />
             </button>
           )}
-
-          <button
-            onClick={shareWhatsAppRaw}
-            style={{
-              width: '4rem',
-              height: '4rem',
-              borderRadius: '1.25rem',
-              background: '#25d366',
-              color: '#fff',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 10px 25px rgba(37, 211, 102, 0.3)'
-            }}
-            title="Enviar Texto WhatsApp"
-          >
-            <Send size={24} />
-          </button>
         </div>
       </div>
     );
