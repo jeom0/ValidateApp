@@ -86,20 +86,6 @@ const Login: React.FC = () => {
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         textAlign: 'center'
       }}>
-        {/* VERSION BANNER */}
-        <div style={{ 
-          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', 
-          padding: '1rem', 
-          textAlign: 'center', 
-          color: '#fff', 
-          fontWeight: 900, 
-          fontSize: '0.875rem', 
-          letterSpacing: '0.15em',
-          textTransform: 'uppercase',
-          borderBottom: '2px solid rgba(255,255,255,0.1)'
-        }}>
-          🛡️ V4.17 - MARGEN MEDIANO QR
-        </div>
         <div style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div style={{
             width: 72,
@@ -121,7 +107,7 @@ const Login: React.FC = () => {
             Bienvenido
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', fontWeight: 500, marginBottom: '2.5rem' }}>
-            Acceso a su plataforma <span style={{ color: '#fff', fontWeight: 700 }}>ValidateApp PRO</span>
+            Acceso a su plataforma <span style={{ color: '#fff', fontWeight: 700 }}>JEOM PRO</span>
           </p>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -199,9 +185,7 @@ const Login: React.FC = () => {
             </button>
           </form>
 
-          <p style={{ marginTop: '2.5rem', color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            Copyright &copy; 2026 · Antigravity Systems
-          </p>
+            Copyright &copy; 2026 · JEOM
         </div>
       </div>
       <style>{`

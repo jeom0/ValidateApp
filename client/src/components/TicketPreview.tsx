@@ -68,7 +68,7 @@ const TicketContent: React.FC<{
               aspectRatio: '1/1',
               background: '#fff',
               borderRadius: isPrint ? '8px' : '12px',
-              padding: '4%',
+              padding: '12%',
               boxShadow: isPrint ? 'none' : '0 10px 30px rgba(0,0,0,0.1)'
             }}
           >
