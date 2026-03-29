@@ -59,6 +59,47 @@ app.get('/api/force-admin', (req, res) => {
   });
 });
 
+// DB INSPECTOR - muestra el contenido de todas las tablas
+app.get('/api/db-inspect', (req, res) => {
+  const tables = ['users', 'clients', 'events', 'templates', 'boletas', 'activity_logs', 'scan_logs'];
+  let html = `<html><head><meta charset="utf-8"><title>DB Inspector</title>
+  <style>body{font-family:sans-serif;background:#111;color:#eee;padding:2rem}
+  table{border-collapse:collapse;width:100%;margin-bottom:2rem;font-size:0.85rem}
+  th{background:#333;padding:8px;text-align:left}td{padding:6px;border-bottom:1px solid #333}
+  h2{color:#60a5fa;margin-top:2rem}pre{background:#222;padding:1rem;border-radius:8px;overflow:auto}</style>
+  </head><body><h1>🗄️ DB Inspector en Vivo</h1>`;
+  
+  let pending = tables.length;
+  const results = {};
+  
+  tables.forEach(table => {
+    db.all(`SELECT * FROM ${table} LIMIT 50`, [], (err, rows) => {
+      results[table] = err ? { error: err.message } : rows;
+      pending--;
+      if (pending === 0) {
+        tables.forEach(t => {
+          const data = results[t];
+          html += `<h2>📋 ${t}</h2>`;
+          if (data.error) {
+            html += `<p style="color:red">Error: ${data.error}</p>`;
+          } else if (data.length === 0) {
+            html += `<p style="color:#888">Tabla vacía</p>`;
+          } else {
+            const cols = Object.keys(data[0]);
+            html += `<table><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
+            data.forEach(row => {
+              html += `<tr>${cols.map(c => `<td>${row[c] ?? ''}</td>`).join('')}</tr>`;
+            });
+            html += `</table>`;
+          }
+        });
+        html += `</body></html>`;
+        res.send(html);
+      }
+    });
+  });
+});
+
 // Recent activity for dashboard
 app.get('/api/activity', (req, res) => {
   const query = `
