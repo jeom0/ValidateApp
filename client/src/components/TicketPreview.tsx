@@ -1,6 +1,6 @@
 import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Download, Send } from 'lucide-react';
+import { Download, Send, Share2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -21,7 +21,7 @@ export interface TicketPreviewRef {
 }
 
 /**
- * FIXED VERSION 2.2 - NO LABELS - NO OVERFLOW - RESPONSIVE 1:1 PROPORTIONS
+ * FIXED VERSION 3.0 - FRONTEND ONLY - PREMIUM RESPONSIVE & HIGH-RES PDF
  */
 const TicketContent: React.FC<{ ticket: any, template: any, width?: string | number, isPrint?: boolean }> = ({ ticket, template, width = '100%', isPrint = false }) => {
   const hasTemplate = template && template.imageUrl;
@@ -34,7 +34,7 @@ const TicketContent: React.FC<{ ticket: any, template: any, width?: string | num
       background: hasTemplate ? 'transparent' : '#fff', 
       borderRadius: isPrint ? '0' : '1.5rem', 
       overflow: 'hidden', 
-      boxShadow: isPrint ? 'none' : '0 20px 50px rgba(0,0,0,0.15)',
+      boxShadow: isPrint ? 'none' : '0 25px 60px rgba(0,0,0,0.2)',
       display: 'flex',
       flexDirection: 'column',
       transition: 'all 0.3s ease'
@@ -92,7 +92,6 @@ const TicketContent: React.FC<{ ticket: any, template: any, width?: string | num
             <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.6, marginBottom: '0.5rem' }}>🎫 VALIDATE PRO TICKET</div>
             <div style={{ fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.02em' }}>#{ticket.consecutivo}</div>
           </div>
-          <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', fontSize: '10px', opacity: 0.3 }}>v2.2-Responsive</div>
         </div>
       )}
     </div>
@@ -108,12 +107,11 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, tem
     downloading
   }));
 
-  const downloadPDF = async () => {
+  const downloadPDF = async (shouldShare: boolean = false) => {
     if (!printRef.current) return;
     setDownloading(true);
     try {
-      // Ensure all resources are stable
-      await new Promise(r => setTimeout(r, 300)); 
+      await new Promise(r => setTimeout(r, 400)); 
       
       const canvas = await html2canvas(printRef.current, {
         useCORS: true,
@@ -131,7 +129,24 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, tem
       });
       
       pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width / 3, canvas.height / 3);
-      pdf.save(`Ticket_QR_${ticket.consecutivo}.pdf`);
+      
+      if (shouldShare && navigator.share) {
+        const blob = pdf.output('blob');
+        const file = new File([blob], `Ticket_${ticket.consecutivo}.pdf`, { type: 'application/pdf' });
+        
+        try {
+          await navigator.share({
+            files: [file],
+            title: `Boleta #${ticket.consecutivo}`,
+            text: `Aquí tienes tu entrada digital.`
+          });
+        } catch (shareErr) {
+          console.warn("Share failed, falling back to download", shareErr);
+          pdf.save(`Ticket_QR_${ticket.consecutivo}.pdf`);
+        }
+      } else {
+        pdf.save(`Ticket_QR_${ticket.consecutivo}.pdf`);
+      }
     } catch (err) {
       console.error("PDF Error:", err);
       alert("Error al generar el PDF. Asegúrate de tener conexión.");
@@ -159,10 +174,10 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, tem
       </div>
       
       {/* 3. PREMIUM ACTIONS */}
-      <div style={{ display: 'flex', gap: '1rem', width: '100%', maxWidth: '420px' }}>
+      <div style={{ display: 'flex', gap: '1rem', width: '100%', maxWidth: '420px', flexWrap: 'wrap' }}>
         <button 
           type="button"
-          onClick={downloadPDF} 
+          onClick={() => downloadPDF(false)} 
           disabled={downloading}
           className="btn btn-primary"
           style={{ 
@@ -180,9 +195,29 @@ const TicketPreview = forwardRef<TicketPreviewRef, Props>(({ client, ticket, tem
               Generando...
             </span>
           ) : (
-            <><Download size={20} /> Descargar PDF</>
+            <><Download size={20} /> PDF</>
           )}
         </button>
+
+        {typeof navigator.share !== 'undefined' && (
+          <button 
+            type="button"
+            onClick={() => downloadPDF(true)}
+            className="btn"
+            style={{ 
+              width: '4rem', 
+              height: '4rem', 
+              borderRadius: '1.25rem', 
+              background: '#3b82f6', 
+              color: '#fff', 
+              padding: 0,
+              boxShadow: '0 10px 25px rgba(59, 130, 246, 0.25)'
+            }}
+          >
+            <Share2 size={22} />
+          </button>
+        )}
+
         <button 
           type="button"
           onClick={shareWhatsApp}

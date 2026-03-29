@@ -295,27 +295,40 @@ const TemplateEditor: React.FC = () => {
               justifyContent: 'center',
               position: 'relative',
               overflow: 'hidden',
-              transition: 'border-color 0.2s, background 0.2s'
+              transition: 'border-color 0.2s, background 0.2s',
+              padding: activeTemplate.imageUrl ? '1rem' : 0
             }}
           >
             {activeTemplate.imageUrl ? (
                 <div 
                   ref={containerRef}
                   id="template-container"
-                  style={{ position: 'relative', display: 'inline-block' }}
+                  style={{ 
+                    position: 'relative', 
+                    display: 'inline-block',
+                    maxWidth: '100%',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.1)'
+                  }}
                 >
                   <img
                     src={activeTemplate.imageUrl}
                     alt="Fondo Boleta"
                     className="canvas-img"
-                    style={{ maxWidth: '100%', maxHeight: '550px', display: 'block', borderRadius: '1rem' }}
+                    style={{ 
+                      maxWidth: '100%', 
+                      height: 'auto',
+                      maxHeight: '65vh', 
+                      display: 'block', 
+                      borderRadius: '1rem',
+                      pointerEvents: 'none'
+                    }}
                     draggable={false}
                   />
                   <Rnd
                     lockAspectRatio={true}
                     size={{ 
-                      width: (activeTemplate.qrWidth / 100) * (containerRef.current?.offsetWidth || 1) || 120, 
-                      height: (activeTemplate.qrHeight / 100) * (containerRef.current?.offsetHeight || 1) || 120 
+                      width: (activeTemplate.qrWidth / 100) * (containerRef.current?.offsetWidth || 1) || 80, 
+                      height: (activeTemplate.qrHeight / 100) * (containerRef.current?.offsetHeight || 1) || 80 
                     }}
                     position={{ 
                       x: (activeTemplate.qrX / 100) * (containerRef.current?.offsetWidth || 1), 
@@ -344,19 +357,25 @@ const TemplateEditor: React.FC = () => {
                       }
                     }}
                     bounds="parent"
+                    enableResizing={{
+                      top: true, right: true, bottom: true, left: true,
+                      topRight: true, bottomRight: true, bottomLeft: true, topLeft: true
+                    }}
                     style={{
-                      border: '2.5px solid #16a34a',
+                      border: '3px solid #16a34a',
                       background: '#fff',
-                      borderRadius: '0.625rem',
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                      borderRadius: '12px',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
                       zIndex: 10,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: '8px'
+                      padding: '4%',
+                      cursor: 'move',
+                      touchAction: 'none' // Critical for mobile drag
                     }}
                   >
-                    <div style={{ width: '100%', height: '100%' }}>
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                       <QRCodeSVG value="MOCK-QR-PREVIEW" style={{ width: '100%', height: '100%' }} />
                     </div>
                   </Rnd>
