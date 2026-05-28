@@ -267,7 +267,7 @@ const TemplateEditor: React.FC = () => {
                 {imageLoaded && (
                   <Rnd
                     lockAspectRatio={true}
-                    size={{ width: (activeTemplate.qrWidth / 100) * containerDims.w, height: (activeTemplate.qrHeight / 100) * containerDims.h }}
+                    size={{ width: (activeTemplate.qrWidth / 100) * containerDims.w, height: (activeTemplate.qrWidth / 100) * containerDims.w }}
                     position={{ x: (activeTemplate.qrX / 100) * containerDims.w, y: (activeTemplate.qrY / 100) * containerDims.h }}
                     onDragStop={(_e, d) => setActiveTemplate(prev => ({ ...prev, qrX: (d.x / containerDims.w) * 100, qrY: (d.y / containerDims.h) * 100 }))}
                     onResizeStop={(_e, _dir, ref, _delta, pos) => {

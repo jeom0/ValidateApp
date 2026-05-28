@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config';
 import { Modal } from '../components/Modal';
-import { Search, Edit2, Trash2, Ticket, ChevronRight, UserPlus, Plus, Minus, Calendar, CheckCircle2, Clock, Loader2, MapPin, Download } from 'lucide-react';
+import { Search, Edit2, Trash2, Ticket, ChevronRight, UserPlus, Plus, Minus, Calendar, CheckCircle2, Clock, Loader2, MapPin, Download, RefreshCw } from 'lucide-react';
 import TicketPreview from '../components/TicketPreview';
 import Stepper from '../components/Stepper';
 import EmptyState from '../components/EmptyState';
@@ -179,6 +179,28 @@ const Clients: React.FC = () => {
     } catch (err) {
       console.error('Error editing boleta code:', err);
       alert('Error de red al intentar cambiar el código.');
+    }
+  };
+
+  const handleRegenerateBoleta = async (boletaId: string) => {
+    if (!window.confirm("¿Seguro que deseas regenerar esta boleta? La anterior quedará desactivada permanentemente y se generará una nueva.")) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/boletas/${boletaId}/regenerate`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setClientBoletas(prev => {
+          const updated = prev.map(b => b.id === data.oldId ? { ...b, active: 0 } : b);
+          return [...updated, data.newBoleta];
+        });
+        fetchClients();
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || 'Error al regenerar boleta');
+      }
+    } catch (err) {
+      console.error('Error regenerating boleta:', err);
+      alert('Error de red al intentar regenerar la boleta.');
     }
   };
 
@@ -423,11 +445,18 @@ const Clients: React.FC = () => {
                     </span>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button 
+                        onClick={() => handleRegenerateBoleta(b.id)}
+                        style={{ color: '#8b5cf6', border: 'none', background: '#ede9fe', padding: '0.25rem 0.75rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', zIndex: 10, fontSize: '0.75rem', fontWeight: 'bold' }}
+                        title="Regenerar Boleta Completa"
+                      >
+                        <RefreshCw size={12} style={{ marginRight: '0.25rem' }} /> Regenerar
+                      </button>
+                      <button 
                         onClick={() => handleEditCode(b.id, b.code)}
                         style={{ color: '#3b82f6', border: 'none', background: '#eff6ff', padding: '0.25rem 0.75rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', zIndex: 10, fontSize: '0.75rem', fontWeight: 'bold' }}
-                        title="Editar Código"
+                        title="Editar Código Manualmente"
                       >
-                        <Edit2 size={12} style={{ marginRight: '0.25rem' }} /> Editar Código
+                        <Edit2 size={12} />
                       </button>
                       <button 
                         onClick={() => handleToggleActive(b.id)}

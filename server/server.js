@@ -561,6 +561,49 @@ app.put('/api/boletas/:id/code', (req, res) => {
   });
 });
 
+// Regenerate individual boleta
+app.post('/api/boletas/:id/regenerate', (req, res) => {
+  db.get('SELECT * FROM boletas WHERE id = ?', [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Boleta no encontrada' });
+    
+    // 1. Deactivate old boleta
+    db.run('UPDATE boletas SET active = 0 WHERE id = ?', [row.id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      // 2. Generate new boleta
+      db.get('SELECT MAX(consecutivo) as max_cons FROM boletas', [], (err, bRow) => {
+        let startConsecutive = (bRow && bRow.max_cons) ? bRow.max_cons + 1 : 1;
+        const newId = crypto.randomUUID();
+        const newCode = crypto.randomBytes(8).toString('hex');
+        
+        db.run(
+          'INSERT INTO boletas (id, code, consecutivo, used, active, clientId, templateId, eventId) VALUES (?, ?, ?, 0, 1, ?, ?, ?)',
+          [newId, newCode, startConsecutive, row.clientId, row.templateId, row.eventId],
+          function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            logActivity({ type: 'boleta_regenerated', message: `Boleta regenerada: Anterior #${row.consecutivo} -> Nueva #${startConsecutive}` });
+            
+            res.json({ 
+              oldId: row.id,
+              newBoleta: {
+                id: newId,
+                code: newCode,
+                consecutivo: startConsecutive,
+                used: 0,
+                active: 1,
+                clientId: row.clientId,
+                templateId: row.templateId,
+                eventId: row.eventId
+              }
+            });
+          }
+        );
+      });
+    });
+  });
+});
+
 // Delete individual boleta
 app.delete('/api/boletas/:id', (req, res) => {
   const { id } = req.params;
