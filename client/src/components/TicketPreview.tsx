@@ -60,24 +60,34 @@ const TicketContent: React.FC<{
               left: `${template.qrX}%`,
               top: `${template.qrY}%`,
               width: `${template.qrWidth}%`,
+              height: 0,
+              paddingBottom: `${template.qrWidth}%`,
               zIndex: 100,
               background: '#fff',
               borderRadius: isPrint ? '6px' : '10px',
-              padding: '1%',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
+            }}
+          >
+            <div style={{
+              position: 'absolute',
+              top: '4%',
+              left: '4%',
+              width: '92%',
+              height: '92%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              aspectRatio: '1/1',
-              boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-            }}
-          >
-            <QRCodeCanvas
-              value={ticket?.code || 'NO-CODE'}
-              size={512}
-              level="H"
-              includeMargin={false}
-              style={{ width: '100%', height: '100%', display: 'block' }}
-            />
+              background: '#fff'
+            }}>
+              <QRCodeCanvas
+                value={ticket?.code || 'NO-CODE'}
+                size={512}
+                level="H"
+                includeMargin={false}
+                style={{ width: '100%', height: '100%', display: 'block' }}
+              />
+            </div>
           </div>
         </div>
       ) : (
