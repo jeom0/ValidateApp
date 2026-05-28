@@ -267,16 +267,15 @@ const TemplateEditor: React.FC = () => {
                 {imageLoaded && (
                   <Rnd
                     lockAspectRatio={true}
-                    size={{ width: (activeTemplate.qrWidth / 100) * containerDims.w, height: (activeTemplate.qrWidth / 100) * containerDims.w }}
+                    size={{ width: `${activeTemplate.qrWidth}%`, height: 'auto' }}
                     position={{ x: (activeTemplate.qrX / 100) * containerDims.w, y: (activeTemplate.qrY / 100) * containerDims.h }}
                     onDragStop={(_e, d) => setActiveTemplate(prev => ({ ...prev, qrX: (d.x / containerDims.w) * 100, qrY: (d.y / containerDims.h) * 100 }))}
                     onResizeStop={(_e, _dir, ref, _delta, pos) => {
                       const wPct = (parseInt(ref.style.width) / containerDims.w) * 100;
-                      const hPct = (parseInt(ref.style.height) / containerDims.h) * 100;
-                      setActiveTemplate(prev => ({ ...prev, qrWidth: wPct, qrHeight: hPct, qrX: (pos.x / containerDims.w) * 100, qrY: (pos.y / containerDims.h) * 100 }));
+                      setActiveTemplate(prev => ({ ...prev, qrWidth: wPct, qrHeight: wPct, qrX: (pos.x / containerDims.w) * 100, qrY: (pos.y / containerDims.h) * 100 }));
                     }}
                     bounds="parent"
-                    style={{ border: '3px solid #16a34a', background: '#fff', borderRadius: '8px', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', cursor: 'move', overflow: 'hidden' }}
+                    style={{ aspectRatio: '1/1', border: '3px solid #16a34a', background: '#fff', borderRadius: '8px', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', cursor: 'move', overflow: 'hidden' }}
                   >
                     <QRCodeSVG value="PREVIEW" style={{ width: '100%', height: '100%', display: 'block' }} marginSize={0} />
                   </Rnd>
