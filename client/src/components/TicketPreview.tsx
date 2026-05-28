@@ -60,7 +60,6 @@ const TicketContent: React.FC<{
               left: `${template.qrX}%`,
               top: `${template.qrY}%`,
               width: `${template.qrWidth}%`,
-              height: `${template.qrHeight}%`,
               zIndex: 100,
               background: '#fff',
               borderRadius: isPrint ? '6px' : '10px',

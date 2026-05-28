@@ -147,6 +147,41 @@ const Clients: React.FC = () => {
     );
   };
 
+  const handleToggleActive = async (boletaId: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/boletas/${boletaId}/toggle`, { method: 'PUT' });
+      if (res.ok) {
+        const data = await res.json();
+        setClientBoletas(prev => prev.map(b => b.id === boletaId ? { ...b, active: data.active } : b));
+        fetchClients();
+      }
+    } catch (err) {
+      console.error('Error toggling boleta status:', err);
+    }
+  };
+
+  const handleEditCode = async (boletaId: string, currentCode: string) => {
+    const newCode = window.prompt("Introduce el nuevo código para esta boleta:", currentCode);
+    if (!newCode || newCode.trim() === '' || newCode === currentCode) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/boletas/${boletaId}/code`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: newCode.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Error al actualizar el código');
+        return;
+      }
+      setClientBoletas(prev => prev.map(b => b.id === boletaId ? { ...b, code: data.code } : b));
+    } catch (err) {
+      console.error('Error editing boleta code:', err);
+      alert('Error de red al intentar cambiar el código.');
+    }
+  };
+
   const filtered = clients.filter(c =>
     c.name?.toLowerCase().includes(search.toLowerCase()) ||
     (c.email && c.email.toLowerCase().includes(search.toLowerCase())) ||
@@ -379,19 +414,37 @@ const Clients: React.FC = () => {
                   border: '1px solid #eee', 
                   borderRadius: '1.5rem', 
                   padding: '1.25rem', 
-                  background: '#fff',
+                  background: b.active === 0 ? '#f9fafb' : '#fff',
                   boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                    <button 
-                      onClick={() => handleBoletaDelete(b.id, b.consecutivo)}
-                      style={{ color: '#dc2626', border: 'none', background: '#fef2f2', width: '2rem', height: '2rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', zIndex: 10 }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: b.active === 0 ? '#dc2626' : '#16a34a' }}>
+                      {b.active === 0 ? 'DESACTIVADA' : 'ACTIVA'}
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button 
+                        onClick={() => handleEditCode(b.id, b.code)}
+                        style={{ color: '#3b82f6', border: 'none', background: '#eff6ff', padding: '0.25rem 0.75rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', zIndex: 10, fontSize: '0.75rem', fontWeight: 'bold' }}
+                        title="Editar Código"
+                      >
+                        <Edit2 size={12} style={{ marginRight: '0.25rem' }} /> Editar Código
+                      </button>
+                      <button 
+                        onClick={() => handleToggleActive(b.id)}
+                        style={{ color: b.active === 0 ? '#16a34a' : '#f59e0b', border: 'none', background: b.active === 0 ? '#dcfce7' : '#fef3c7', padding: '0.25rem 0.75rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', zIndex: 10, fontSize: '0.75rem', fontWeight: 'bold' }}
+                      >
+                        {b.active === 0 ? 'Activar' : 'Desactivar'}
+                      </button>
+                      <button 
+                        onClick={() => handleBoletaDelete(b.id, b.consecutivo)}
+                        style={{ color: '#dc2626', border: 'none', background: '#fef2f2', width: '2rem', height: '2rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', zIndex: 10 }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                   
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', opacity: b.active === 0 ? 0.4 : 1, pointerEvents: b.active === 0 ? 'none' : 'auto' }}>
                     <TicketPreview client={selectedClient} ticket={b} template={templates.find(t => t.id === b.templateId)} />
                   </div>
                 </div>

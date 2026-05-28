@@ -135,13 +135,14 @@ db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS clients (id TEXT PRIMARY KEY, name TEXT, email TEXT, cedula TEXT)`);
   db.run(`CREATE TABLE IF NOT EXISTS templates (id TEXT PRIMARY KEY, name TEXT, imageUrl TEXT, qrX REAL, qrY REAL, qrWidth REAL, qrHeight REAL, eventId TEXT)`);
   db.run(`CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, name TEXT, date TEXT, startTime TEXT, endTime TEXT, status TEXT DEFAULT 'pendiente', imageUrl TEXT, location TEXT)`);
-  db.run(`CREATE TABLE IF NOT EXISTS boletas (id TEXT PRIMARY KEY, code TEXT UNIQUE, consecutivo INTEGER, used INTEGER DEFAULT 0, fecha_uso TEXT, clientId TEXT, templateId TEXT, eventId TEXT)`);
+  db.run(`CREATE TABLE IF NOT EXISTS boletas (id TEXT PRIMARY KEY, code TEXT UNIQUE, consecutivo INTEGER, used INTEGER DEFAULT 0, active INTEGER DEFAULT 1, fecha_uso TEXT, clientId TEXT, templateId TEXT, eventId TEXT)`);
   db.run(`CREATE TABLE IF NOT EXISTS scan_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, ticketId TEXT, resultado TEXT, fecha_hora TEXT)`);
   db.run(`CREATE TABLE IF NOT EXISTS activity_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, message TEXT, timestamp TEXT, details TEXT, consecutivo INTEGER, clientName TEXT, eventName TEXT)`);
 
   // Migraciones seguras
   db.run(`ALTER TABLE boletas ADD COLUMN consecutivo INTEGER`);
   db.run(`ALTER TABLE boletas ADD COLUMN fecha_uso TEXT`);
+  db.run(`ALTER TABLE boletas ADD COLUMN active INTEGER DEFAULT 1`);
   db.run(`ALTER TABLE boletas ADD COLUMN eventId TEXT`);
   db.run(`ALTER TABLE clients ADD COLUMN cedula TEXT`);
   db.run(`ALTER TABLE templates ADD COLUMN eventId TEXT`);

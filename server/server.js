@@ -132,7 +132,7 @@ app.put('/api/admin/credentials', (req, res) => {
 // Events
 app.get('/api/events', (req, res) => {
   const isCompact = req.query.compact === 'true';
-  const fields = isCompact ? 'id, name, date, startTime, endTime, status, location, (SELECT COUNT(*) FROM boletas WHERE eventId = events.id) as ticketCount' : '*, (SELECT COUNT(*) FROM boletas WHERE eventId = events.id) as ticketCount';
+  const fields = isCompact ? 'id, name, date, startTime, endTime, status, location, (SELECT COUNT(*) FROM boletas WHERE eventId = events.id AND active = 1) as ticketCount' : '*, (SELECT COUNT(*) FROM boletas WHERE eventId = events.id AND active = 1) as ticketCount';
   const query = `SELECT ${fields} FROM events`;
   db.all(query, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -234,7 +234,7 @@ app.put('/api/events/:id/link-template', (req, res) => {
 
 // Clients
 app.get('/api/clients', (req, res) => {
-  db.all('SELECT c.*, (SELECT COUNT(id) FROM boletas WHERE clientId = c.id) as totalTickets FROM clients c', [], (err, rows) => {
+  db.all('SELECT c.*, (SELECT COUNT(id) FROM boletas WHERE clientId = c.id AND active = 1) as totalTickets FROM clients c', [], (err, rows) => {
     res.json(rows);
   });
 });
@@ -532,6 +532,35 @@ app.put('/api/boletas/:id', (req, res) => {
   });
 });
 
+// Toggle individual boleta
+app.put('/api/boletas/:id/toggle', (req, res) => {
+  db.get('SELECT active FROM boletas WHERE id = ?', [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Boleta no encontrada' });
+    const newStatus = row.active === 0 ? 1 : 0;
+    db.run('UPDATE boletas SET active = ? WHERE id = ?', [newStatus, req.params.id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: req.params.id, active: newStatus });
+    });
+  });
+});
+
+// Update individual boleta code
+app.put('/api/boletas/:id/code', (req, res) => {
+  const { code } = req.body;
+  if (!code || code.trim() === '') return res.status(400).json({ error: 'El código no puede estar vacío' });
+  
+  db.get('SELECT id FROM boletas WHERE code = ? AND id != ?', [code, req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (row) return res.status(409).json({ error: 'El código ya está en uso por otra boleta' });
+    
+    db.run('UPDATE boletas SET code = ? WHERE id = ?', [code, req.params.id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: req.params.id, code });
+    });
+  });
+});
+
 // Delete individual boleta
 app.delete('/api/boletas/:id', (req, res) => {
   const { id } = req.params;
@@ -557,6 +586,12 @@ app.post('/api/scan', (req, res) => {
       logActivity({ type: 'scan_failed', message: `❌ Código Inválido: ${code}`, details: code });
       db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [code, 'no_valida', new Date().toISOString()]);
       return res.status(404).json({ valid: false, message: 'Boleta no encontrada / Inválida' });
+    }
+
+    if (row.active === 0) {
+      logActivity({ type: 'scan_failed', message: `❌ Boleta Desactivada: ${code}`, details: code });
+      db.run('INSERT INTO scan_logs(ticketId, resultado, fecha_hora) VALUES(?, ?, ?)', [row.id, 'desactivada', new Date().toISOString()]);
+      return res.status(403).json({ valid: false, message: 'Boleta desactivada' });
     }
     
     // 2. Si ya fue usada, devolvemos error inmediatamente (Verificación directa del campo 'used')
