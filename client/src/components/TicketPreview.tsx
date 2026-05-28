@@ -72,7 +72,7 @@ const TicketContent: React.FC<{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: `${(template.qrWidth / 100) * imgDims.w * 0.04}px`, // 4% padding in pixels
+                padding: '2px',
                 boxSizing: 'border-box'
               }}
             >
