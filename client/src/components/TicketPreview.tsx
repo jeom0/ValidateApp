@@ -26,6 +26,7 @@ const TicketContent: React.FC<{
 }> = ({ ticket, template, isPrint = false }) => {
 
   const hasTemplate = template && template.imageUrl;
+  const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
 
   return (
     <div
@@ -51,44 +52,46 @@ const TicketContent: React.FC<{
             alt="Ticket" 
             style={{ width: '100%', height: 'auto', display: 'block' }} 
             crossOrigin="anonymous"
+            onLoad={(e) => setImgDims({ w: e.currentTarget.offsetWidth, h: e.currentTarget.offsetHeight })}
           />
 
           {/* QR POSICIONADO (Manteniendo top-left para compatibilidad con editor) */}
-          <div
-            style={{
-              position: 'absolute',
-              left: `${template.qrX}%`,
-              top: `${template.qrY}%`,
-              width: `${template.qrWidth}%`,
-              height: 0,
-              paddingBottom: `${template.qrWidth}%`,
-              zIndex: 100,
-              background: '#fff',
-              borderRadius: isPrint ? '6px' : '10px',
-              boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-              overflow: 'hidden'
-            }}
-          >
-            <div style={{
-              position: 'absolute',
-              top: '4%',
-              left: '4%',
-              width: '92%',
-              height: '92%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#fff'
-            }}>
-              <QRCodeCanvas
-                value={ticket?.code || 'NO-CODE'}
-                size={512}
-                level="H"
-                includeMargin={false}
-                style={{ width: '100%', height: '100%', display: 'block' }}
-              />
+          {imgDims.w > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                left: `${(template.qrX / 100) * imgDims.w}px`,
+                top: `${(template.qrY / 100) * imgDims.h}px`,
+                width: `${(template.qrWidth / 100) * imgDims.w}px`,
+                height: `${(template.qrWidth / 100) * imgDims.w}px`,
+                zIndex: 100,
+                background: '#fff',
+                borderRadius: isPrint ? '6px' : '10px',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: '4%',
+                left: '4%',
+                width: '92%',
+                height: '92%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#fff'
+              }}>
+                <QRCodeCanvas
+                  value={ticket?.code || 'NO-CODE'}
+                  size={512}
+                  level="H"
+                  includeMargin={false}
+                  style={{ width: '100%', height: '100%', display: 'block' }}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       ) : (
         /* Fallback si no hay plantilla */
