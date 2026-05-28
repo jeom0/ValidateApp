@@ -68,6 +68,7 @@ const TicketContent: React.FC<{
                 background: '#fff',
                 borderRadius: isPrint ? '6px' : '10px',
                 boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                border: '3px solid #16a34a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
